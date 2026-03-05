@@ -1,5 +1,7 @@
 package org.example.week2.controller;
 
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.week2.dto.*;
 import org.example.week2.service.UserService;
@@ -12,6 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/users")
 @RequiredArgsConstructor
+@RateLimiter(name = "mainService")
 public class UserController {
 
     private final UserService userService;
@@ -32,7 +35,7 @@ public class UserController {
 
     // POST create user
     @PostMapping
-    public ResponseEntity<UserResponse> createUser(@RequestBody UserCreateRequest request) {
+    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody UserCreateRequest request) {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
