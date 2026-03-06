@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, make_response
 import jwt
 import datetime
 
@@ -13,7 +13,9 @@ students = [
 # GET all students
 @app.route("/students", methods=["GET"])
 def get_students():
-    return jsonify(students), 200
+    response = make_response(jsonify(students))
+    response.headers['Cache-Control'] = 'public, max-age=60'
+    return response, 200
 
 
 # GET one student
@@ -24,7 +26,9 @@ def get_student(id):
         return {"message": "Unauthorized"}, 401
     for s in students:
         if s["id"] == id:
-            return jsonify(s), 200
+            response = make_response(jsonify(s))
+            response.headers['Cache-Control'] = 'public, max-age=60'
+            return response, 200
     return {"message": "Student not found"}, 404
 
 
