@@ -13,6 +13,9 @@ students = [
 # GET all students
 @app.route("/students", methods=["GET"])
 def get_students():
+    user = verify_token()
+    if not user:
+        return {"message": "Unauthorized"}, 401
     response = make_response(jsonify(students))
     response.headers['Cache-Control'] = 'public, max-age=60'
     return response, 200
