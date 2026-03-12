@@ -12,14 +12,23 @@ book_data = [
     {"id": 7, "title": "Jlean Code", "category": "IT", "author": "Robert C. Martin"}
 ]
 
-# example non plural nouns
-@app.route("/api/v1/book", methods=["GET"])
+# example non lower case
+@app.route("/api/v1/Books", methods=["GET"])
 def get_book_wrong():
     return jsonify(
 		{
 			"data": book_data
 		}
 	)
+
+ 
+@app.route("/api/v1/Books/<int:id>", methods=["GET"])
+def get_book_by_id_wrong(id):
+	book = next((b for b in book_data if b["id"] == id), None)
+	if not book:
+		return jsonify({"error": "Book not found"}), 404
+    
+	return jsonify({"data": book}), 200
     
 # example plural nouns
 @app.route("/api/v1/books", methods=["GET"])
