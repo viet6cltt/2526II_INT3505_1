@@ -15,17 +15,14 @@ book_data = [
 '''
 @app.route("/api/v1/data", methods=["GET"])
 def get_data():
-
     t = request.args.get("t", type=int)
-
     for b in book_data:
         if b["id"] == t:
             return jsonify({
                 "i": b["id"],
                 "t": b["title"]
             }), 200
-
-    return {"e": "not found"}, 404
+    return jsonify({"e": "not found"}), 404
 
 # clarity
 '''
@@ -35,21 +32,20 @@ def get_data():
 '''
 @app.route("/api/v1/books/<int:book_id>", methods=["GET"])
 def get_book(book_id):
-
     for b in book_data:
         if b["id"] == book_id:
             return jsonify({
-                "book": {
+                "data": {
                     "id": b["id"],
                     "title": b["title"],
                     "category": b["category"]
                 }
             }), 200
-
-    return {
-        "error": "Book not found",
-        "code": 404
-    }, 404
+    return jsonify({
+        "error": {
+            "message": "Book not found"
+        }
+    }), 404
 
 if __name__ == "__main__":
     app.run(debug=True)
