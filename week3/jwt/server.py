@@ -5,9 +5,9 @@ import datetime
 app = Flask(__name__)
 
 students = [
-    {"id": 1, "username": "An", "password": "123"},
-    {"id": 2, "username": "Binh", "password": "123"},
-    {"id": 3, "username": "Cuong", "password": "123"}
+    {"id": 1, "username": "admin", "password": "123", "role": "admin"},
+    {"id": 2, "username": "user1", "password": "123", "role": "user"},
+    {"id": 3, "username": "user2", "password": "123", "role": "user"}
 ]
 
 # GET all students
@@ -16,6 +16,9 @@ def get_students():
     user = verify_token()
     if not user:
         return {"message": "Unauthorized"}, 401
+    if not user["role"] == "admin":
+        return {"message": "Forbidden"}, 403
+    
     response = make_response(jsonify(students))
     response.headers['Cache-Control'] = 'public, max-age=60'
     return response, 200
@@ -27,6 +30,9 @@ def get_student(id):
     user = verify_token()
     if not user:
         return {"message": "Unauthorized"}, 401
+    if not user["id"] == id or not user["role"] == "admin":
+        return {"message": "Forbidden"}, 403
+    
     for s in students:
         if s["id"] == id:
             response = make_response(jsonify(s))
@@ -38,9 +44,6 @@ def get_student(id):
 # CREATE student
 @app.route("/students", methods=["POST"])
 def add_student():
-    user = verify_token()
-    if not user:
-        return {"message": "Unauthorized"}, 401
     data = request.json
     students.append(data)
     return jsonify(data), 201
@@ -52,6 +55,9 @@ def update_student(id):
     user = verify_token()
     if not user:
         return {"message": "Unauthorized"}, 401
+    if not user["id"] == id:
+        return {"message": "Forbidden"}, 403
+    
     data = request.json
     for s in students:
         if s["id"] == id:
@@ -66,8 +72,12 @@ def delete_student(id):
     user = verify_token()
     if not user:
         return {"message": "Unauthorized"}, 401
-    global students
-    students = [s for s in students if s["id"] != id]
+    if not user["role"] == "admin":
+        return {"message": "Forbidden"}, 403
+    for s in students:
+        if s["id"] == id:
+            students.remove(s)
+            break
     return {"message": "Deleted"}, 200
 
 
@@ -82,7 +92,8 @@ def login():
         if s["username"] == data["username"] and s["password"] == data["password"]:
             token = jwt.encode(
                 {
-                    "user": s["username"],
+                    "id": s["id"],
+                    "role": s["role"],
                     "exp": datetime.datetime.now() + datetime.timedelta(minutes=30)
                 },
                 SECRET_KEY,
