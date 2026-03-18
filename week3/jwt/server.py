@@ -30,7 +30,7 @@ def get_student(id):
     user = verify_token()
     if not user:
         return {"message": "Unauthorized"}, 401
-    if not user["id"] == id or not user["role"] == "admin":
+    if not user["id"] == id and not user["role"] == "admin":
         return {"message": "Forbidden"}, 403
     
     for s in students:
@@ -83,6 +83,7 @@ def delete_student(id):
 
 # Login
 SECRET_KEY = "secret"
+JWT_ALG = "HS256"
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -97,7 +98,7 @@ def login():
                     "exp": datetime.datetime.now() + datetime.timedelta(minutes=30)
                 },
                 SECRET_KEY,
-                algorithm="HS256"
+                algorithm=JWT_ALG
             )
 
             return jsonify({"token": token})
@@ -117,7 +118,7 @@ def verify_token():
     token = parts[1]
 
     try:
-        decoded = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        decoded = jwt.decode(token, SECRET_KEY, algorithms=[JWT_ALG])
         return decoded
     except jwt.ExpiredSignatureError:
         return None

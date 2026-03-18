@@ -1,0 +1,130 @@
+openapi: 3.0.0
+info:
+  title: Book Management API
+  description: RESTful API supports book management.
+  version: 1.0.0
+
+paths:
+  /books:
+    get:
+      summary: Get list of books
+      description: Retrieve a paginated list of books with optional filtering
+      tags: 
+        - Books
+
+      parameters:
+        - name: page
+          in: query
+          description: Page number starting from 1
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+          
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            example: 10
+
+        - name: category
+          in: query
+          description: Filter books by category
+          required: false
+          schema: 
+            type: string
+            example: IT
+          
+      responses: 
+        '200':
+          description: Successfully retrieved list of books
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BookListItem'
+                  metadata:
+                    type: object
+                    properties:
+                      page: 
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 10
+                      total: 
+                        type: integer
+                        example: 1000
+        '400':
+          description: Bad request (invalid query parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: Invalid query parameter 'page'
+                  details: Page must be >= 1
+        '401':
+          description: Unauthorized (missing or invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+
+
+components:
+  schemas:
+    BookListItem:
+      type: object
+      required:
+        - id
+        - title
+        - author
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: Clean Code
+        author:
+          type: string
+          example: Robert C. Martin
+        category:
+          type: string
+          example: IT
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: integer
+              example: 400
+            message:
+              type: string
+              example: Bad request
+            details:
+              type: string
+              example: Invalid parameter   
