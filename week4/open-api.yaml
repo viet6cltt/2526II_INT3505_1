@@ -86,7 +86,73 @@ paths:
                   code: 401
                   message: Unauthorized
                   details: Missing or invalid authentication token
-
+  /books/{bookId}:
+    get:
+      summary: Get book detail by id
+      description: Return book detail by book id
+      tags:
+        - Books
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          description: ID of the book
+          schema: 
+            type: integer
+      responses:
+        '200':
+          description: Successfully get book information by id
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/BookDetail'
+        '400':
+          description: Bad request 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: Bad Request
+                  details: Need book id to get book information
+        '401':
+          description: Unauthorized (missing or invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 403
+                  message: Forbidden
+                  details: You do not have permission to access this resource
+        '404':
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 404
+                  message: Not Found
+                  details: Book not found
 
 components:
   schemas:
@@ -96,6 +162,23 @@ components:
         - id
         - title
         - author
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: Clean Code
+        author:
+          type: string
+          example: Robert C. Martin
+    BookDetail:
+      type: object
+      required:
+        - id
+        - title
+        - author
+        - category
       properties:
         id:
           type: integer
