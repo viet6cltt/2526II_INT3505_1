@@ -86,6 +86,64 @@ paths:
                   code: 401
                   message: Unauthorized
                   details: Missing or invalid authentication token
+
+    post:
+      summary: Create a new book 
+      description: Create a new book 
+      tags: 
+        - Books
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            shema:
+              $ref: "#/components/schemas/BookCreateRequest"
+          
+      responses: 
+        '201':
+          description: Book created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/BookDetail'
+        '400':
+          description: Invalid created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: Bad Request
+                  details: Missing required field 'title'
+        '401':
+          description: Unauthorized (missing or invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 403
+                  message: Forbidden
+                  details: You do not have permission to create a new book
+
   /books/{bookId}:
     get:
       summary: Get book detail by id
@@ -120,6 +178,137 @@ paths:
                   code: 400
                   message: Bad Request
                   details: Need book id to get book information
+        '401':
+          description: Unauthorized (missing or invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 403
+                  message: Forbidden
+                  details: You do not have permission to access this resource
+        '404':
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 404
+                  message: Not Found
+                  details: Book not found
+    put:
+      summary: Update 
+      description: Update full info of a book
+      tags:
+        - Books
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          description: ID of the book
+          schema: 
+            type: integer
+      requestBody:
+        required: true
+        content: 
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookUpdateRequest"
+      responses:
+        '200':
+          description: Book updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/BookDetail'
+        '400':
+          description: Bad request 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: Bad Request
+                  details: Need book id to update book
+        '401':
+          description: Unauthorized (missing or invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 403
+                  message: Forbidden
+                  details: You do not have permission to access this resource
+        '404':
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 404
+                  message: Not Found
+                  details: Book not found
+    delete:
+      summary: Delete a book  
+      description: Remove a book by ID
+      tags:
+        - Books
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          description: ID of the book
+          schema: 
+            type: integer
+      responses:
+        '204':
+          description: Book updated successfully
+        '400':
+          description: Bad request 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: Bad Request
+                  details: Need book id to delete book
         '401':
           description: Unauthorized (missing or invalid token)
           content:
@@ -192,6 +381,39 @@ components:
         category:
           type: string
           example: IT
+    BookCreateRequest:
+      type: object
+      required:
+        - title
+        - author
+        - category
+      properties:
+        title:
+          type: string
+          example: Clean Code
+        author:
+          type: string
+          example: Robert C. Martin
+        category:
+          type: string
+          example: IT
+    BookUpdateRequest:
+      type: object
+      required: 
+        - title
+        - author
+        - category
+      properties:
+        title:
+          type: string
+          example: Clean Code
+        author:
+          type: string
+          example: Robert C. Martin
+        category:
+          type: string
+          example: IT
+      
 
     Error:
       type: object
