@@ -4,6 +4,12 @@ info:
   description: RESTful API supports book management.
   version: 1.0.0
 
+servers:
+  - url: http://localhost
+    description: Dev server (uses live data)
+  - url: https://2526-ii-int-3505-1-one.vercel.app
+    description: Deploy server
+
 paths:
   /books:
     get:
