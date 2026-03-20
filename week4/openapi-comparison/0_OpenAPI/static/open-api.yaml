@@ -1,0 +1,526 @@
+openapi: 3.0.0
+info:
+  title: Book Management API
+  description: RESTful API supports book management.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost
+    description: Dev server (uses live data)
+  - url: https://2526-ii-int-3505-1-one.vercel.app
+    description: Deploy server
+
+paths:
+  /books:
+    get:
+      summary: Get list of books
+      description: Retrieve a paginated list of books with optional filtering
+      tags: 
+        - Books
+
+      parameters:
+        - name: page
+          in: query
+          description: Page number starting from 1
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+          
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            example: 10
+
+        - name: category
+          in: query
+          description: Filter books by category
+          required: false
+          schema: 
+            type: string
+            example: IT
+          
+      responses: 
+        '200':
+          description: Successfully retrieved list of books
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BookListItem'
+                  metadata:
+                    type: object
+                    properties:
+                      page: 
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 10
+                      total: 
+                        type: integer
+                        example: 1000
+        '400':
+          description: Bad request (invalid query parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: Invalid query parameter 'page'
+                  details: Page must be >= 1
+        '401':
+          description: Unauthorized (missing or invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+
+    post:
+      summary: Create a new book 
+      description: Create a new book 
+      tags: 
+        - Books
+      
+      security:
+        - bearerAuth: []
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookCreateRequest"
+          
+      responses: 
+        '201':
+          description: Book created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/BookDetail'
+        '400':
+          description: Invalid created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: Bad Request
+                  details: Missing required field 'title'
+        '401':
+          description: Unauthorized (missing or invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 403
+                  message: Forbidden
+                  details: You do not have permission to create a new book
+
+  /books/{bookId}:
+    get:
+      summary: Get book detail by id
+      description: Return book detail by book id
+      tags:
+        - Books
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          description: ID of the book
+          schema: 
+            type: integer
+        - name: Cache-Control
+          in: header
+          description: Control cache of response
+          required: false
+          schema: 
+            type: string
+            example: no-cache
+
+      security:
+        - bearerAuth: []
+
+      responses:
+        '200':
+          description: Successfully get book information by id
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/BookDetail'
+        '400':
+          description: Bad request 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: Bad Request
+                  details: Need book id to get book information
+        '401':
+          description: Unauthorized (missing or invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 403
+                  message: Forbidden
+                  details: You do not have permission to access this resource
+        '404':
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 404
+                  message: Not Found
+                  details: Book not found
+    put:
+      summary: Update 
+      description: Update full info of a book
+      tags:
+        - Books
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          description: ID of the book
+          schema: 
+            type: integer
+      requestBody:
+        required: true
+        content: 
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookUpdateRequest"
+      responses:
+        '200':
+          description: Book updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/BookDetail'
+        '400':
+          description: Bad request 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: Bad Request
+                  details: Need book id to update book
+        '401':
+          description: Unauthorized (missing or invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 403
+                  message: Forbidden
+                  details: You do not have permission to access this resource
+        '404':
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 404
+                  message: Not Found
+                  details: Book not found
+    delete:
+      summary: Delete a book  
+      description: Remove a book by ID
+      tags:
+        - Books
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          description: ID of the book
+          schema: 
+            type: integer
+      responses:
+        '204':
+          description: Book deleted successfully
+        '400':
+          description: Bad request 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: Bad Request
+                  details: Need book id to delete book
+        '401':
+          description: Unauthorized (missing or invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 403
+                  message: Forbidden
+                  details: You do not have permission to access this resource
+        '404':
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 404
+                  message: Not Found
+                  details: Book not found
+
+  /users:
+    get:
+      summary: Get users with debug mode
+      tags: 
+        - Users
+
+      parameters:
+        - name: debug
+          in: cookie
+          required: false
+          schema:
+            type: integer
+            enum: [0, 1]
+            default: 0
+          description: Enable debug mode
+
+        - name: theme
+          in: cookie
+          required: false
+          schema:
+            type: string
+            enum: [light, dark]
+          description: UI theme preference
+
+      responses:
+        '200':
+          description: OK
+          
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      description: Create new accesstoken from refresh token
+      tags:
+        - Auth
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Successfully generated new access token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    description: JWT access token mới
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '401':
+          description: Unauthorized - refresh token not valid
+
+        '403':
+          description: Forbidden - refresh token is revoked.
+
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: refresh_token
+    
+
+  schemas:
+    BookListItem:
+      type: object
+      required:
+        - id
+        - title
+        - author
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: Clean Code
+        author:
+          type: string
+          example: Robert C. Martin
+    BookDetail:
+      type: object
+      required:
+        - id
+        - title
+        - author
+        - category
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: Clean Code
+        author:
+          type: string
+          example: Robert C. Martin
+        category:
+          type: string
+          example: IT
+    BookCreateRequest:
+      type: object
+      required:
+        - title
+        - author
+        - category
+      properties:
+        title:
+          type: string
+          example: Clean Code
+        author:
+          type: string
+          example: Robert C. Martin
+        category:
+          type: string
+          example: IT
+    BookUpdateRequest:
+      type: object
+      required: 
+        - title
+        - author
+        - category
+      properties:
+        title:
+          type: string
+          example: Clean Code
+        author:
+          type: string
+          example: Robert C. Martin
+        category:
+          type: string
+          example: IT
+      
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: integer
+              example: 400
+            message:
+              type: string
+              example: Bad request
+            details:
+              type: string
+              example: Invalid parameter   

@@ -1,0 +1,176 @@
+{
+  "operations": {
+    "getBooks": {
+      "method": "GET",
+      "path": "/books",
+      "parameters": {
+        "page": { "in": "query", "type": "integer" },
+        "limit": { "in": "query", "type": "integer" },
+        "category": { "in": "query", "type": "string" }
+      },
+      "return": { "type": "BookListResponse" }
+    },
+
+    "createBook": {
+      "method": "POST",
+      "path": "/books",
+      "security": ["bearerAuth"],
+      "requestBody": { "type": "BookCreateRequest" },
+      "return": { "type": "BookDetailResponse" }
+    },
+
+    "getBookById": {
+      "method": "GET",
+      "path": "/books/{bookId}",
+      "security": ["bearerAuth"],
+      "parameters": {
+        "bookId": { "in": "path", "type": "integer" },
+        "Cache-Control": { "in": "header", "type": "string" }
+      },
+      "return": { "type": "BookDetailResponse" }
+    },
+
+    "updateBook": {
+      "method": "PUT",
+      "path": "/books/{bookId}",
+      "security": ["bearerAuth"],
+      "parameters": {
+        "bookId": { "in": "path", "type": "integer" }
+      },
+      "requestBody": { "type": "BookUpdateRequest" },
+      "return": { "type": "BookDetailResponse" }
+    },
+
+    "deleteBook": {
+      "method": "DELETE",
+      "path": "/books/{bookId}",
+      "security": ["bearerAuth"],
+      "parameters": {
+        "bookId": { "in": "path", "type": "integer" }
+      },
+      "return": { "type": "void" }
+    },
+
+    "getUsers": {
+      "method": "GET",
+      "path": "/users",
+      "parameters": {
+        "debug": { "in": "cookie", "type": "integer" },
+        "theme": { "in": "cookie", "type": "string" }
+      },
+      "return": { "type": "void" }
+    },
+
+    "refreshToken": {
+      "method": "POST",
+      "path": "/auth/refresh",
+      "security": ["cookieAuth"],
+      "return": { "type": "RefreshResponse" }
+    }
+  },
+
+  "definitions": {
+    "BookListItem": {
+      "type": "struct",
+      "properties": {
+        "id": { "type": "integer" },
+        "title": { "type": "string" },
+        "author": { "type": "string" }
+      }
+    },
+
+    "BookDetail": {
+      "type": "struct",
+      "properties": {
+        "id": { "type": "integer" },
+        "title": { "type": "string" },
+        "author": { "type": "string" },
+        "category": { "type": "string" }
+      }
+    },
+
+    "BookCreateRequest": {
+      "type": "struct",
+      "properties": {
+        "title": { "type": "string" },
+        "author": { "type": "string" },
+        "category": { "type": "string" }
+      }
+    },
+
+    "BookUpdateRequest": {
+      "type": "struct",
+      "properties": {
+        "title": { "type": "string" },
+        "author": { "type": "string" },
+        "category": { "type": "string" }
+      }
+    },
+
+    "PaginationMetadata": {
+      "type": "struct",
+      "properties": {
+        "page": { "type": "integer" },
+        "limit": { "type": "integer" },
+        "total": { "type": "integer" }
+      }
+    },
+
+    "BookListResponse": {
+      "type": "struct",
+      "properties": {
+        "data": {
+          "type": "array",
+          "items": { "type": "reference", "target": "BookListItem" }
+        },
+        "metadata": {
+          "type": "reference",
+          "target": "PaginationMetadata"
+        }
+      }
+    },
+
+    "BookDetailResponse": {
+      "type": "struct",
+      "properties": {
+        "data": {
+          "type": "reference",
+          "target": "BookDetail"
+        }
+      }
+    },
+
+    "RefreshResponse": {
+      "type": "struct",
+      "properties": {
+        "accessToken": { "type": "string" }
+      }
+    },
+
+    "Error": {
+      "type": "struct",
+      "properties": {
+        "error": {
+          "type": "struct",
+          "properties": {
+            "code": { "type": "integer" },
+            "message": { "type": "string" },
+            "details": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+
+  "security": {
+    "bearerAuth": {
+      "type": "http",
+      "scheme": "bearer"
+    },
+    "cookieAuth": {
+      "type": "apiKey",
+      "in": "cookie",
+      "name": "refresh_token"
+    }
+  }
+}

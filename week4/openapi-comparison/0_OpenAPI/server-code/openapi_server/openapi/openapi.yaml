@@ -1,0 +1,623 @@
+openapi: 3.0.0
+info:
+  description: RESTful API supports book management.
+  title: Book Management API
+  version: 1.0.0
+servers:
+- description: Dev server (uses live data)
+  url: http://localhost
+- description: Deploy server
+  url: https://2526-ii-int-3505-1-one.vercel.app
+paths:
+  /auth/refresh:
+    post:
+      description: Create new accesstoken from refresh token
+      operationId: auth_refresh_post
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_auth_refresh_post_200_response"
+          description: Successfully generated new access token
+        "401":
+          description: Unauthorized - refresh token not valid
+        "403":
+          description: Forbidden - refresh token is revoked.
+      security:
+      - cookieAuth: []
+      summary: Refresh access token
+      tags:
+      - Auth
+      x-openapi-router-controller: openapi_server.controllers.auth_controller
+  /books:
+    get:
+      description: Retrieve a paginated list of books with optional filtering
+      operationId: books_get
+      parameters:
+      - description: Page number starting from 1
+        explode: true
+        in: query
+        name: page
+        required: false
+        schema:
+          example: 1
+          minimum: 1
+          type: integer
+        style: form
+      - description: Number of items per page
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          example: 10
+          maximum: 20
+          minimum: 1
+          type: integer
+        style: form
+      - description: Filter books by category
+        explode: true
+        in: query
+        name: category
+        required: false
+        schema:
+          example: IT
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_books_get_200_response"
+          description: Successfully retrieved list of books
+        "400":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 400
+                  message: Invalid query parameter 'page'
+                  details: Page must be >= 1
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Bad request (invalid query parameters)
+        "401":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unauthorized (missing or invalid token)
+      summary: Get list of books
+      tags:
+      - Books
+      x-openapi-router-controller: openapi_server.controllers.books_controller
+    post:
+      description: Create a new book
+      operationId: books_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookCreateRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_books_post_201_response"
+          description: Book created successfully
+        "400":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 400
+                  message: Bad Request
+                  details: Missing required field 'title'
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Invalid created successfully
+        "401":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unauthorized (missing or invalid token)
+        "403":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 403
+                  message: Forbidden
+                  details: You do not have permission to create a new book
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Forbidden
+      security:
+      - bearerAuth: []
+      summary: Create a new book
+      tags:
+      - Books
+      x-openapi-router-controller: openapi_server.controllers.books_controller
+  /books/{bookId}:
+    delete:
+      description: Remove a book by ID
+      operationId: books_book_id_delete
+      parameters:
+      - description: ID of the book
+        explode: false
+        in: path
+        name: bookId
+        required: true
+        schema:
+          type: integer
+        style: simple
+      responses:
+        "204":
+          description: Book deleted successfully
+        "400":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 400
+                  message: Bad Request
+                  details: Need book id to delete book
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Bad request
+        "401":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unauthorized (missing or invalid token)
+        "403":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 403
+                  message: Forbidden
+                  details: You do not have permission to access this resource
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 404
+                  message: Not Found
+                  details: Book not found
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Book not found
+      security:
+      - bearerAuth: []
+      summary: Delete a book
+      tags:
+      - Books
+      x-openapi-router-controller: openapi_server.controllers.books_controller
+    get:
+      description: Return book detail by book id
+      operationId: books_book_id_get
+      parameters:
+      - description: ID of the book
+        explode: false
+        in: path
+        name: bookId
+        required: true
+        schema:
+          type: integer
+        style: simple
+      - description: Control cache of response
+        explode: false
+        in: header
+        name: Cache-Control
+        required: false
+        schema:
+          example: no-cache
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_books_post_201_response"
+          description: Successfully get book information by id
+        "400":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 400
+                  message: Bad Request
+                  details: Need book id to get book information
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Bad request
+        "401":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unauthorized (missing or invalid token)
+        "403":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 403
+                  message: Forbidden
+                  details: You do not have permission to access this resource
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 404
+                  message: Not Found
+                  details: Book not found
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Book not found
+      security:
+      - bearerAuth: []
+      summary: Get book detail by id
+      tags:
+      - Books
+      x-openapi-router-controller: openapi_server.controllers.books_controller
+    put:
+      description: Update full info of a book
+      operationId: books_book_id_put
+      parameters:
+      - description: ID of the book
+        explode: false
+        in: path
+        name: bookId
+        required: true
+        schema:
+          type: integer
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookUpdateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_books_post_201_response"
+          description: Book updated successfully
+        "400":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 400
+                  message: Bad Request
+                  details: Need book id to update book
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Bad request
+        "401":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unauthorized (missing or invalid token)
+        "403":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 403
+                  message: Forbidden
+                  details: You do not have permission to access this resource
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 404
+                  message: Not Found
+                  details: Book not found
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Book not found
+      security:
+      - bearerAuth: []
+      summary: Update
+      tags:
+      - Books
+      x-openapi-router-controller: openapi_server.controllers.books_controller
+  /users:
+    get:
+      operationId: users_get
+      parameters:
+      - description: Enable debug mode
+        explode: true
+        in: cookie
+        name: debug
+        required: false
+        schema:
+          default: 0
+          enum:
+          - 0
+          - 1
+          type: integer
+        style: form
+      - description: UI theme preference
+        explode: true
+        in: cookie
+        name: theme
+        required: false
+        schema:
+          enum:
+          - light
+          - dark
+          type: string
+        style: form
+      responses:
+        "200":
+          description: OK
+      summary: Get users with debug mode
+      tags:
+      - Users
+      x-openapi-router-controller: openapi_server.controllers.users_controller
+components:
+  schemas:
+    BookListItem:
+      example:
+        author: Robert C. Martin
+        id: 1
+        title: Clean Code
+      properties:
+        id:
+          example: 1
+          title: id
+          type: integer
+        title:
+          example: Clean Code
+          title: title
+          type: string
+        author:
+          example: Robert C. Martin
+          title: author
+          type: string
+      required:
+      - author
+      - id
+      - title
+      title: BookListItem
+      type: object
+    BookDetail:
+      example:
+        author: Robert C. Martin
+        id: 1
+        title: Clean Code
+        category: IT
+      properties:
+        id:
+          example: 1
+          title: id
+          type: integer
+        title:
+          example: Clean Code
+          title: title
+          type: string
+        author:
+          example: Robert C. Martin
+          title: author
+          type: string
+        category:
+          example: IT
+          title: category
+          type: string
+      required:
+      - author
+      - category
+      - id
+      - title
+      title: BookDetail
+      type: object
+    BookCreateRequest:
+      example:
+        author: Robert C. Martin
+        title: Clean Code
+        category: IT
+      properties:
+        title:
+          example: Clean Code
+          title: title
+          type: string
+        author:
+          example: Robert C. Martin
+          title: author
+          type: string
+        category:
+          example: IT
+          title: category
+          type: string
+      required:
+      - author
+      - category
+      - title
+      title: BookCreateRequest
+      type: object
+    BookUpdateRequest:
+      example:
+        author: Robert C. Martin
+        title: Clean Code
+        category: IT
+      properties:
+        title:
+          example: Clean Code
+          title: title
+          type: string
+        author:
+          example: Robert C. Martin
+          title: author
+          type: string
+        category:
+          example: IT
+          title: category
+          type: string
+      required:
+      - author
+      - category
+      - title
+      title: BookUpdateRequest
+      type: object
+    Error:
+      example:
+        error:
+          code: 400
+          details: Invalid parameter
+          message: Bad request
+      properties:
+        error:
+          $ref: "#/components/schemas/Error_error"
+      title: Error
+      type: object
+    _books_get_200_response_metadata:
+      example:
+        total: 1000
+        limit: 10
+        page: 1
+      properties:
+        page:
+          example: 1
+          title: page
+          type: integer
+        limit:
+          example: 10
+          title: limit
+          type: integer
+        total:
+          example: 1000
+          title: total
+          type: integer
+      title: _books_get_200_response_metadata
+      type: object
+    _books_get_200_response:
+      example:
+        metadata:
+          total: 1000
+          limit: 10
+          page: 1
+        data:
+        - author: Robert C. Martin
+          id: 1
+          title: Clean Code
+        - author: Robert C. Martin
+          id: 1
+          title: Clean Code
+      properties:
+        data:
+          items:
+            $ref: "#/components/schemas/BookListItem"
+          title: data
+          type: array
+        metadata:
+          $ref: "#/components/schemas/_books_get_200_response_metadata"
+      title: _books_get_200_response
+      type: object
+    _books_post_201_response:
+      example:
+        data:
+          author: Robert C. Martin
+          id: 1
+          title: Clean Code
+          category: IT
+      properties:
+        data:
+          $ref: "#/components/schemas/BookDetail"
+      title: _books_post_201_response
+      type: object
+    _auth_refresh_post_200_response:
+      example:
+        accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      properties:
+        accessToken:
+          description: JWT access token mới
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+          title: accessToken
+          type: string
+      title: _auth_refresh_post_200_response
+      type: object
+    Error_error:
+      example:
+        code: 400
+        details: Invalid parameter
+        message: Bad request
+      properties:
+        code:
+          example: 400
+          title: code
+          type: integer
+        message:
+          example: Bad request
+          title: message
+          type: string
+        details:
+          example: Invalid parameter
+          title: details
+          type: string
+      required:
+      - code
+      - message
+      title: Error_error
+      type: object
+  securitySchemes:
+    bearerAuth:
+      bearerFormat: JWT
+      scheme: bearer
+      type: http
+      x-bearerInfoFunc: openapi_server.controllers.security_controller.info_from_bearerAuth
+    cookieAuth:
+      in: cookie
+      name: refresh_token
+      type: apiKey
+      x-apikeyInfoFunc: openapi_server.controllers.security_controller.info_from_cookieAuth

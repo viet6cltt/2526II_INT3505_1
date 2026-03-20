@@ -1,0 +1,281 @@
+#%RAML 1.0
+title: Book Management API
+version: v1
+baseUri: http://{host}
+protocols: [ HTTP, HTTPS ]
+
+securitySchemes:
+  bearerAuth:
+    type: x-bearer
+    description: |
+      Use the HTTP header `Authorization: Bearer <token>` to authenticate requests.
+  cookieAuth:
+    type: x-cookie
+    description: |
+      Send a `refresh_token` cookie for refresh endpoints.
+
+baseUriParameters:
+  scheme:
+    enum: [http, https]
+    default: http
+  host:
+    enum:
+      - localhost
+    default: localhost
+
+traits:
+  paged:
+    queryParameters:
+      page:
+        type: integer
+        minimum: 1
+        example: 1
+        required: false
+      limit:
+        type: integer
+        minimum: 1
+        maximum: 20
+        example: 10
+        required: false
+      category:
+        type: string
+        required: false
+    responses:
+      200:
+        body:
+          application/json:
+            type: PaginatedBooks
+  secured:
+    headers:
+      Authorization:
+        description: Bearer token `Bearer <token>`
+        required: true
+    responses:
+      401:
+        body:
+          application/json:
+            type: Error
+  optionalCacheControl:
+    headers:
+      Cache-Control:
+        description: Control cache of response (e.g. `no-cache`)
+        required: false
+
+types:
+  BookBase:
+    type: object
+    properties:
+      title: string
+      author: string
+    required: [ title, author ]
+
+  BookWithCategory:
+    type: BookBase
+    properties:
+      category: string
+    required: [ category ]
+
+  BookListItem:
+    type: object
+    properties:
+      id: integer
+      title: string
+      author: string
+    required: [ id, title, author ]
+
+  BookDetail:
+    type: BookListItem
+    properties:
+      category: string
+    required: [ id, title, author, category ]
+
+  BookCreateRequest:
+    type: BookWithCategory
+
+  BookUpdateRequest:
+    type: BookWithCategory
+
+  PaginatedBooks:
+    type: object
+    properties:
+      data: BookListItem[]
+      metadata:
+        type: object
+        properties:
+          page: integer
+          limit: integer
+          total: integer
+
+  Error:
+    type: object
+    properties:
+      error:
+        type: object
+        properties:
+          code: integer
+          message: string
+          details?: string
+
+
+/ books:
+  get:
+    is: [ paged ]
+    description: Retrieve a paginated list of books with optional filtering.
+    responses:
+      200:
+        body:
+          application/json:
+            type: PaginatedBooks
+      400:
+        body:
+          application/json:
+            type: Error
+      401:
+        body:
+          application/json:
+            type: Error
+
+  post:
+    is: [ secured ]
+    description: Create a new book.
+    body:
+      application/json:
+        type: BookCreateRequest
+    responses:
+      201:
+        body:
+          application/json:
+            type: object
+            properties:
+              data: BookDetail
+      400:
+        body:
+          application/json:
+            type: Error
+      401:
+        body:
+          application/json:
+            type: Error
+      403:
+        body:
+          application/json:
+            type: Error
+
+/ books/{bookId}:
+  uriParameters:
+    bookId:
+      type: integer
+      required: true
+  get:
+    is: [ secured, optionalCacheControl ]
+    description: Return book detail by book id.
+    responses:
+      200:
+        body:
+          application/json:
+            type: object
+            properties:
+              data: BookDetail
+      400:
+        body:
+          application/json:
+            type: Error
+      401:
+        body:
+          application/json:
+            type: Error
+      403:
+        body:
+          application/json:
+            type: Error
+      404:
+        body:
+          application/json:
+            type: Error
+
+  put:
+    is: [ secured ]
+    description: Update full info of a book.
+    body:
+      application/json:
+        type: BookUpdateRequest
+    responses:
+      200:
+        body:
+          application/json:
+            type: object
+            properties:
+              data: BookDetail
+      400:
+        body:
+          application/json:
+            type: Error
+      401:
+        body:
+          application/json:
+            type: Error
+      403:
+        body:
+          application/json:
+            type: Error
+      404:
+        body:
+          application/json:
+            type: Error
+
+  delete:
+    is: [ secured ]
+    description: Remove a book by ID.
+    responses:
+      204: 
+        description: Book deleted successfully
+      400:
+        body:
+          application/json:
+            type: Error
+      401:
+        body:
+          application/json:
+            type: Error
+      403:
+        body:
+          application/json:
+            type: Error
+      404:
+        body:
+          application/json:
+            type: Error
+
+/ users:
+  get:
+    description: Get users (supports debug/theme via cookies).
+    headers:
+      Cookie:
+        description: |
+          Cookie string may contain `debug=0|1` and `theme=light|dark`.
+        required: false
+    responses:
+      200:
+        body:
+          application/json:
+            type: object
+
+/ auth/refresh:
+  post:
+    securedBy: [ cookieAuth ]
+    description: Create new access token from refresh token cookie.
+    responses:
+      200:
+        body:
+          application/json:
+            type: object
+            properties:
+              accessToken: string
+      401:
+        body:
+          application/json:
+            type: Error
+      403:
+        body:
+          application/json:
+            type: Error

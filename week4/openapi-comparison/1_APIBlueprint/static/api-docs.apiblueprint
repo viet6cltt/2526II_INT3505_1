@@ -1,0 +1,284 @@
+FORMAT: 1A
+HOST: http://localhost
+
+# Book Management API
+
+RESTful API supports book management.
+
+---
+
+# Group Books
+
+## Books Collection [/books]
+
+### Get list of books [GET]
+
+* Parameters
+
+  * page: 1 (number, optional) - Page number (>=1)
+  * limit: 10 (number, optional) - Items per page (1–20)
+  * category: IT (string, optional) - Filter by category
+
+* Response 200 (application/json)
+
+  ```
+    {
+        "data": [
+            {
+                "id": 1,
+                "title": "Clean Code",
+                "author": "Robert C. Martin"
+            }
+        ],
+        "metadata": {
+            "page": 1,
+            "limit": 10,
+            "total": 1000
+        }
+    }
+  ```
+
+* Response 400 (application/json)
+
+  ```
+    {
+        "error": {
+            "code": 400,
+            "message": "Invalid query parameter 'page'",
+            "details": "Page must be >= 1"
+        }
+    }
+  ```
+
+* Response 401 (application/json)
+
+  ```
+    {
+        "error": {
+            "code": 401,
+            "message": "Unauthorized",
+            "details": "Missing or invalid authentication token"
+        }
+    }
+  ```
+
+### Create a new book [POST]
+
+* Request (application/json)
+
+  * Headers
+    Authorization: Bearer <token>
+
+  * Body
+
+    ```
+      {
+          "title": "Clean Code",
+          "author": "Robert C. Martin",
+          "category": "IT"
+      }
+    ```
+
+* Response 201 (application/json)
+
+  ```
+    {
+        "data": {
+            "id": 1,
+            "title": "Clean Code",
+            "author": "Robert C. Martin",
+            "category": "IT"
+        }
+    }
+  ```
+
+* Response 400 (application/json)
+
+  ```
+    {
+        "error": {
+            "code": 400,
+            "message": "Bad Request",
+            "details": "Missing required field 'title'"
+        }
+    }
+  ```
+
+* Response 401 (application/json)
+
+  ```
+    {
+        "error": {
+            "code": 401,
+            "message": "Unauthorized",
+            "details": "Missing or invalid authentication token"
+        }
+    }
+  ```
+
+* Response 403 (application/json)
+
+  ```
+    {
+        "error": {
+            "code": 403,
+            "message": "Forbidden",
+            "details": "You do not have permission to create a new book"
+        }
+    }
+  ```
+
+## Book Detail [/books/{bookId}]
+
+* Parameters
+
+  * bookId: 1 (number, required) - ID of the book
+
+### Get book detail [GET]
+
+* Request
+
+  * Headers
+    Authorization: Bearer <token>
+    Cache-Control: no-cache
+
+* Response 200 (application/json)
+
+  ```
+    {
+        "data": {
+            "id": 1,
+            "title": "Clean Code",
+            "author": "Robert C. Martin",
+            "category": "IT"
+        }
+    }
+  ```
+
+* Response 404 (application/json)
+
+  ```
+    {
+        "error": {
+            "code": 404,
+            "message": "Not Found",
+            "details": "Book not found"
+        }
+    }
+  ```
+
+### Update book [PUT]
+
+* Request (application/json)
+
+  * Headers
+    Authorization: Bearer <token>
+
+  * Body
+
+    ```
+      {
+          "title": "Clean Code",
+          "author": "Robert C. Martin",
+          "category": "IT"
+      }
+    ```
+
+* Response 200 (application/json)
+
+  ```
+    {
+        "data": {
+            "id": 1,
+            "title": "Clean Code",
+            "author": "Robert C. Martin",
+            "category": "IT"
+        }
+    }
+  ```
+
+### Delete book [DELETE]
+
+* Request
+
+  * Headers
+    Authorization: Bearer <token>
+
+* Response 204
+
+---
+
+# Group Users
+
+## Users [/users]
+
+### Get users [GET]
+
+* Request
+
+  * Headers
+    Cookie: debug=1; theme=dark
+
+* Response 200
+
+---
+
+# Group Auth
+
+## Refresh Token [/auth/refresh]
+
+### Refresh access token [POST]
+
+* Request
+
+  * Headers
+    Cookie: refresh_token=<token>
+
+* Response 200 (application/json)
+
+  ```
+    {
+        "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+  ```
+
+* Response 401
+
+* Response 403
+
+---
+
+# Data Structures
+
+## BookListItem (object)
+
+* id: 1 (number)
+* title: Clean Code (string)
+* author: Robert C. Martin (string)
+
+## BookDetail (object)
+
+* id: 1 (number)
+* title: Clean Code (string)
+* author: Robert C. Martin (string)
+* category: IT (string)
+
+## BookCreateRequest (object)
+
+* title: Clean Code (string)
+* author: Robert C. Martin (string)
+* category: IT (string)
+
+## BookUpdateRequest (object)
+
+* title: Clean Code (string)
+* author: Robert C. Martin (string)
+* category: IT (string)
+
+## Error (object)
+
+* error (object)
+
+  * code: 400 (number)
+  * message: Bad request (string)
+  * details: Invalid parameter (string)
