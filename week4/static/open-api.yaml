@@ -92,6 +92,9 @@ paths:
       description: Create a new book 
       tags: 
         - Books
+      
+      security:
+        - bearerAuth: []
 
       requestBody:
         required: true
@@ -157,6 +160,17 @@ paths:
           description: ID of the book
           schema: 
             type: integer
+        - name: Cache-Control
+          in: header
+          description: Control cache of response
+          required: false
+          schema: 
+            type: string
+            example: no-cache
+
+      security:
+        - bearerAuth: []
+
       responses:
         '200':
           description: Successfully get book information by id
@@ -216,6 +230,8 @@ paths:
       description: Update full info of a book
       tags:
         - Books
+      security:
+        - bearerAuth: []
       parameters:
         - name: bookId
           in: path
@@ -288,6 +304,8 @@ paths:
       description: Remove a book by ID
       tags:
         - Books
+      security:
+        - bearerAuth: []
       parameters:
         - name: bookId
           in: path
@@ -297,7 +315,7 @@ paths:
             type: integer
       responses:
         '204':
-          description: Book updated successfully
+          description: Book deleted successfully
         '400':
           description: Bad request 
           content:
@@ -343,7 +361,74 @@ paths:
                   message: Not Found
                   details: Book not found
 
+  /users:
+    get:
+      summary: Get users with debug mode
+      tags: 
+        - Users
+
+      parameters:
+        - name: debug
+          in: cookie
+          required: false
+          schema:
+            type: integer
+            enum: [0, 1]
+            default: 0
+          description: Enable debug mode
+
+        - name: theme
+          in: cookie
+          required: false
+          schema:
+            type: string
+            enum: [light, dark]
+          description: UI theme preference
+
+      responses:
+        '200':
+          description: OK
+          
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      description: Create new accesstoken from refresh token
+      tags:
+        - Auth
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Successfully generated new access token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    description: JWT access token mới
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '401':
+          description: Unauthorized - refresh token not valid
+
+        '403':
+          description: Forbidden - refresh token is revoked.
+
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: refresh_token
+    
+
   schemas:
     BookListItem:
       type: object
