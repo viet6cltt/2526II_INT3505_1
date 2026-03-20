@@ -106,7 +106,7 @@ paths:
         required: true
         content:
           application/json:
-            shema:
+            schema:
               $ref: "#/components/schemas/BookCreateRequest"
           
       responses: 
