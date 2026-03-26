@@ -16,8 +16,8 @@ class BorrowRecord(db.Model):
     def to_dict(self):
         return {
             "id": self.id,
-            "user": self.user,
-            "book": self.book,
+            "user": self.user.to_dict() if self.user else None,
+            "book": self.book.to_dict() if self.book else None,
             "borrowDate": self.borrow_date,
             "returnDate": self.return_date
         }

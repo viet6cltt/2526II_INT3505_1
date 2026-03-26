@@ -13,7 +13,7 @@ def get_categories():
     query = Category.query
     
     if search:
-        query = query.filter(Category.title.contains(search))
+        query = query.filter(Category.name.contains(search))
         
     pagination = query.paginate(page = page, per_page=page_size, error_out=False)
     
