@@ -41,8 +41,8 @@ def jwt_required(token_type="access"):
             except jwt.InvalidAudienceError:
                 return jsonify({"error": "Invalid token audience"}), 401
             
-            if payload.get("type") != "access":
-                return jsonify({"error": "Invalid token type"}), 401
+            if payload.get("type") != token_type:
+                return jsonify({"error": f"Invalid token type. Expected '{token_type}'"}), 401
             
             user = User.query.get(payload.get("sub"))
             if not user:
@@ -154,6 +154,27 @@ def refresh():
             "access_token": access_token
         }
     }), 200
+    
+@auth_bp.route('/logout', methods=['POST'])
+@jwt_required(token_type="access")
+def logout():
+    # Revoke access token
+    payload = g.payload
+    revoke_token(payload)
+    
+    # Revoke refresh token
+    refresh_token = request.cookies.get("refresh_token")
+    if refresh_token:
+        try:
+            refresh_payload = decode_token(refresh_token)
+            revoke_token(refresh_payload)
+        except jwt.InvalidTokenError:
+            pass # Ignore invalid token
+        
+    response = make_response(jsonify({"message": "Logged out successfully"}))
+    response.set_cookie("refresh_token", "", expires=0, httponly=True, secure=True, samesite="None")
+    
+    return response, 200
     
     
     

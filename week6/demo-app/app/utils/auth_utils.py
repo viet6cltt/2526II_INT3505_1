@@ -60,7 +60,7 @@ def revoke_token(payload):
     jti = payload['jti']
     exp = payload['exp']
     
-    # Lưu vào redis với thời gian tồn tại = thời gian còn lại của refresh token
+    # Lưu vào redis với thời gian tồn tại = thời gian còn lại của token
     redis_client.setex(f"revoked_token:{jti}", exp - int(utc_now().timestamp()), "true")
 
     
