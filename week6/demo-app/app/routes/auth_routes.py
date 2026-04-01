@@ -1,9 +1,9 @@
 from flask import Blueprint, current_app, request, jsonify, g, make_response
 from functools import wraps
 import jwt
-from app.extensions import db
+from app.extensions import db, redis_client
 from app.models import User
-from app.utils.auth_utils import create_access_token, create_refresh_token, decode_token
+from app.utils.auth_utils import create_access_token, create_refresh_token, decode_token, revoke_token
 
 def _extract_bearer_token():
     auth_header = request.headers.get('Authorization', '')
@@ -47,6 +47,10 @@ def jwt_required(token_type="access"):
             user = User.query.get(payload.get("sub"))
             if not user:
                 return jsonify({"error": "User not found"}), 404
+            
+            # handle token revocation
+            if redis_client.get(f"revoked_token:{payload['jti']}"):
+                return jsonify({"error": "Token has been revoked"}), 401
             
             g.current_user = user
             g.payload = payload
