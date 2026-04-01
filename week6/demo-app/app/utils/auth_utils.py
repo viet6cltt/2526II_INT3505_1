@@ -8,9 +8,12 @@ from app.models import User
 def utc_now():
     return datetime.now(timezone.utc)
 
-def create_access_token(user_id, user_role, expires_in=current_app.config["ACCESS_TOKEN_EXPIRES_IN"]):
+def create_access_token(user_id, user_role, expires_in=None):
+    if expires_in is None:
+        expires_in = current_app.config["ACCESS_TOKEN_EXPIRES_IN"]
+        
     now = utc_now()
-    exp = now + timedelta(seconds=expires_in)
+    exp = now + timedelta(seconds=expires_in )
     
     payload = {
         "sub": str(user_id), # Định danh người dùng
@@ -27,7 +30,10 @@ def create_access_token(user_id, user_role, expires_in=current_app.config["ACCES
     token = jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
     return token
 
-def create_refresh_token(user_id, expires_in=current_app.config["REFRESH_TOKEN_EXPIRES_IN"]):
+def create_refresh_token(user_id, expires_in=None):
+    if expires_in is None:
+        expires_in = current_app.config["REFRESH_TOKEN_EXPIRES_IN"]
+        
     now = utc_now()
     exp = now + timedelta(seconds=expires_in)
     
@@ -58,7 +64,7 @@ def decode_token(token):
 
 def revoke_token(payload):
     jti = payload['jti']
-    exp = payload['exp']
+    exp = int(payload['exp'])
     
     # Lưu vào redis với thời gian tồn tại = thời gian còn lại của token
     redis_client.setex(f"revoked_token:{jti}", exp - int(utc_now().timestamp()), "true")

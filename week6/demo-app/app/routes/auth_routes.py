@@ -77,7 +77,7 @@ def role_required(required_role):
         return wrapper
     return decorator
 
-auth_bp = Blueprint('auth', __name__)
+auth_bp = Blueprint('api/v1/auth', __name__)
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
@@ -93,7 +93,7 @@ def login():
     if not user or not user.check_password(password):
         return jsonify({"error": "Invalid username or password"}), 401
     
-    access_token = create_access_token(user.id, user.role)
+    access_token = create_access_token(user.id, user.role.value)
     refresh_token = create_refresh_token(user.id)
     
     response = make_response(jsonify({
@@ -146,7 +146,7 @@ def register():
 def refresh():
     user = g.current_user
     
-    access_token = create_access_token(user.id, user.role)
+    access_token = create_access_token(user.id, user.role.value)
     
     return jsonify({
         "message": "Token refreshed successfully",
