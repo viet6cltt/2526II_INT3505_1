@@ -30,7 +30,7 @@ def get_borrow_records():
         
     query = query.order_by(BorrowRecord.id.desc())
     
-    if cursor:
+    if cursor is not None:
         query = query.filter(BorrowRecord.id < cursor)
         
     
