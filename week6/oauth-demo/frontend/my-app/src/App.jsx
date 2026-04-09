@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Routes, Route, useNavigate } from "react-router-dom";
-
-const API = "http://localhost:5001";
+import UserProfile from "./UserProfile";
+const API = "http://localhost:5000";
 
 function Home() {
   const [sessionData, setSessionData] = useState(null);
@@ -39,32 +39,55 @@ function Home() {
       <div style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 20 }}>
         {
           !sessionData ?
+          <div style={{ display: "flex", gap: 12 }}>
+            <a
+            href={`${API}/login`}
+            style={{
+              padding: "10px 14px",
+              background: "#111",
+              color: "white",
+              textDecoration: "none",
+              borderRadius: 8,
+            }}
+          >
+            Login with Demo OAuth
+          </a>
           <a
-          href={`${API}/login`}
-          style={{
-            padding: "10px 14px",
-            background: "#111",
-            color: "white",
-            textDecoration: "none",
-            borderRadius: 8,
-          }}
-        >
-          Login with Demo OAuth
-        </a> : 
+            href={`${API}/login-google`}
+            style={{
+              padding: "10px 14px",
+              background: "#111",
+              color: "white",
+              textDecoration: "none",
+              borderRadius: 8,
+            }}
+          >
+            Login with Google
+          </a>
+          </div> : 
         <button onClick={logout} style={{ padding: "10px 14px" }}>
           Logout
         </button>
         }
-        
-
-        
       </div>
-
+      
       <div style={{ marginBottom: 24 }}>
-        <h3>Session</h3>
-        <pre style={{ background: "#f4f4f4", padding: 16, borderRadius: 8 }}>
-          {JSON.stringify(sessionData, null, 2)}
-        </pre>
+        <h3>Thông tin phiên đăng nhập</h3>
+        {sessionData ? (
+          <UserProfile sessionData={sessionData} />
+        ) : (
+          <p style={{ color: "#888", fontStyle: "italic" }}>
+            Vui lòng đăng nhập để xem thông tin.
+          </p>
+        )}
+        
+        {/* Nếu vẫn muốn giữ lại debug JSON, hãy cho nó vào một dropdown thu gọn */}
+        <details style={{ marginTop: 20, cursor: "pointer" }}>
+          <summary style={{ fontSize: "12px", color: "#999" }}>Xem dữ liệu JSON thô</summary>
+          <pre style={{ background: "#f4f4f4", padding: 12, borderRadius: 8, fontSize: "11px", overflow: "auto" }}>
+            {JSON.stringify(sessionData, null, 2)}
+          </pre>
+        </details>
       </div>
 
     </div>
