@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "apib2swagger": "^1.17.1"
+  }
+}

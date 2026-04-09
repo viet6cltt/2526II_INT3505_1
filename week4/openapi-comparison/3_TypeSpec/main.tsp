@@ -1,5 +1,6 @@
 import "@typespec/http";
 import "@typespec/openapi";
+import "@azure-tools/typespec-python";
 
 using Http;
 
@@ -45,6 +46,7 @@ model ErrorDetail {
   details?: string;
 }
 
+@error
 model ErrorResponse {
   error: ErrorDetail;
 }

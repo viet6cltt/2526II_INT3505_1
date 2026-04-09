@@ -11,6 +11,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@azure-tools/typespec-python": "^0.61.2",
     "@typespec/compiler": "^1.10.0",
     "@typespec/http": "^1.10.0",
     "@typespec/openapi3": "^1.10.0"

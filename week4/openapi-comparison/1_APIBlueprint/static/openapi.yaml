@@ -1,0 +1,580 @@
+swagger: '2.0'
+info:
+  title: Book Management API
+  version: ''
+  description: |-
+    RESTful API supports book management.
+
+    ---
+host: localhost
+basePath: /
+schemes:
+  - http
+paths:
+  /books:
+    get:
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          examples:
+            application/json:
+              data:
+                - id: 1
+                  title: Clean Code
+                  author: Robert C. Martin
+              metadata:
+                page: 1
+                limit: 10
+                total: 1000
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: number
+                    title:
+                      type: string
+                    author:
+                      type: string
+              metadata:
+                type: object
+                properties:
+                  page:
+                    type: number
+                  limit:
+                    type: number
+                  total:
+                    type: number
+            example:
+              data:
+                - id: 1
+                  title: Clean Code
+                  author: Robert C. Martin
+              metadata:
+                page: 1
+                limit: 10
+                total: 1000
+        '400':
+          description: Bad Request
+          headers: {}
+          examples:
+            application/json:
+              error:
+                code: 400
+                message: Invalid query parameter 'page'
+                details: Page must be >= 1
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: number
+                  message:
+                    type: string
+                  details:
+                    type: string
+            example:
+              error:
+                code: 400
+                message: Invalid query parameter 'page'
+                details: Page must be >= 1
+        '401':
+          description: Unauthorized
+          headers: {}
+          examples:
+            application/json:
+              error:
+                code: 401
+                message: Unauthorized
+                details: Missing or invalid authentication token
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: number
+                  message:
+                    type: string
+                  details:
+                    type: string
+            example:
+              error:
+                code: 401
+                message: Unauthorized
+                details: Missing or invalid authentication token
+      summary: Get list of books
+      operationId: Get list of books
+      description: ''
+      tags:
+        - Books
+      parameters:
+        - name: page
+          in: body
+          description: Page number (>=1)
+          required: false
+          x-example: '1'
+          schema:
+            type: number
+        - name: limit
+          in: body
+          description: Items per page (1–20)
+          required: false
+          x-example: '10'
+          schema:
+            type: number
+        - name: category
+          in: body
+          description: Filter by category
+          required: false
+          x-example: IT
+          schema:
+            type: string
+      produces:
+        - application/json
+      consumes: []
+    post:
+      responses:
+        '201':
+          description: Created
+          headers: {}
+          examples:
+            application/json:
+              data:
+                id: 1
+                title: Clean Code
+                author: Robert C. Martin
+                category: IT
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  id:
+                    type: number
+                  title:
+                    type: string
+                  author:
+                    type: string
+                  category:
+                    type: string
+            example:
+              data:
+                id: 1
+                title: Clean Code
+                author: Robert C. Martin
+                category: IT
+        '400':
+          description: Bad Request
+          headers: {}
+          examples:
+            application/json:
+              error:
+                code: 400
+                message: Bad Request
+                details: Missing required field 'title'
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: number
+                  message:
+                    type: string
+                  details:
+                    type: string
+            example:
+              error:
+                code: 400
+                message: Bad Request
+                details: Missing required field 'title'
+        '401':
+          description: Unauthorized
+          headers: {}
+          examples:
+            application/json:
+              error:
+                code: 401
+                message: Unauthorized
+                details: Missing or invalid authentication token
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: number
+                  message:
+                    type: string
+                  details:
+                    type: string
+            example:
+              error:
+                code: 401
+                message: Unauthorized
+                details: Missing or invalid authentication token
+        '403':
+          description: Forbidden
+          headers: {}
+          examples:
+            application/json:
+              error:
+                code: 403
+                message: Forbidden
+                details: You do not have permission to create a new book
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: number
+                  message:
+                    type: string
+                  details:
+                    type: string
+            example:
+              error:
+                code: 403
+                message: Forbidden
+                details: You do not have permission to create a new book
+      summary: Create a new book
+      operationId: Create a new book
+      description: ''
+      tags:
+        - Books
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+              author:
+                type: string
+              category:
+                type: string
+            example:
+              title: Clean Code
+              author: Robert C. Martin
+              category: IT
+      produces:
+        - application/json
+      consumes:
+        - application/json
+      security:
+        - oauth2: []
+  /books/{bookId}:
+    get:
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          examples:
+            application/json:
+              data:
+                id: 1
+                title: Clean Code
+                author: Robert C. Martin
+                category: IT
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  id:
+                    type: number
+                  title:
+                    type: string
+                  author:
+                    type: string
+                  category:
+                    type: string
+            example:
+              data:
+                id: 1
+                title: Clean Code
+                author: Robert C. Martin
+                category: IT
+        '404':
+          description: Not Found
+          headers: {}
+          examples:
+            application/json:
+              error:
+                code: 404
+                message: Not Found
+                details: Book not found
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: number
+                  message:
+                    type: string
+                  details:
+                    type: string
+            example:
+              error:
+                code: 404
+                message: Not Found
+                details: Book not found
+      summary: Get book detail
+      operationId: Get book detail
+      description: ''
+      tags:
+        - Books
+      parameters:
+        - &ref_0
+          name: bookId
+          in: path
+          description: ID of the book
+          required: true
+          x-example: '1'
+          type: number
+        - name: Cache-Control
+          in: header
+          description: e.g. no-cache
+          required: false
+          x-example: no-cache
+          type: string
+      produces:
+        - application/json
+      consumes: []
+      security:
+        - oauth2: []
+    put:
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          examples:
+            application/json:
+              data:
+                id: 1
+                title: Clean Code
+                author: Robert C. Martin
+                category: IT
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  id:
+                    type: number
+                  title:
+                    type: string
+                  author:
+                    type: string
+                  category:
+                    type: string
+            example:
+              data:
+                id: 1
+                title: Clean Code
+                author: Robert C. Martin
+                category: IT
+      summary: Update book
+      operationId: Update book
+      description: ''
+      tags:
+        - Books
+      parameters:
+        - *ref_0
+        - name: body
+          in: body
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+              author:
+                type: string
+              category:
+                type: string
+            example:
+              title: Clean Code
+              author: Robert C. Martin
+              category: IT
+      produces:
+        - application/json
+      consumes:
+        - application/json
+      security:
+        - oauth2: []
+    delete:
+      responses:
+        '204':
+          description: No Content
+          headers: {}
+          examples: {}
+      summary: Delete book
+      operationId: Delete book
+      description: ''
+      tags:
+        - Books
+      parameters:
+        - *ref_0
+      consumes: []
+      security:
+        - oauth2: []
+  /users:
+    get:
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          examples: {}
+      summary: Get users
+      operationId: Get users
+      description: ''
+      tags:
+        - Users
+      parameters:
+        - name: Cookie
+          in: header
+          description: e.g. debug=1; theme=dark
+          required: false
+          x-example: debug=1; theme=dark
+          type: string
+      consumes: []
+  /auth/refresh:
+    post:
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          examples:
+            application/json:
+              accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+          schema:
+            type: object
+            properties:
+              accessToken:
+                type: string
+            example:
+              accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '401':
+          description: Unauthorized
+          headers: {}
+          examples: {}
+        '403':
+          description: Forbidden
+          headers: {}
+          examples: {}
+      summary: Refresh access token
+      operationId: Refresh access token
+      description: ''
+      tags:
+        - Auth
+      parameters:
+        - name: Cookie
+          in: header
+          description: e.g. refresh_token=<token>
+          required: false
+          x-example: refresh_token=<token>
+          type: string
+      produces:
+        - application/json
+      consumes: []
+definitions:
+  Books Collection: {}
+  Book Detail: {}
+  Users: {}
+  Refresh Token: {}
+  BookListItem:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1
+      title:
+        type: string
+        example: Clean Code
+      author:
+        type: string
+        example: Robert C. Martin
+  BookDetail:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1
+      title:
+        type: string
+        example: Clean Code
+      author:
+        type: string
+        example: Robert C. Martin
+      category:
+        type: string
+        example: IT
+  BookCreateRequest:
+    type: object
+    properties:
+      title:
+        type: string
+        example: Clean Code
+      author:
+        type: string
+        example: Robert C. Martin
+      category:
+        type: string
+        example: IT
+  BookUpdateRequest:
+    type: object
+    properties:
+      title:
+        type: string
+        example: Clean Code
+      author:
+        type: string
+        example: Robert C. Martin
+      category:
+        type: string
+        example: IT
+  Error:
+    type: object
+    properties:
+      error:
+        type: object
+        properties:
+          code:
+            type: number
+            example: 400
+          message:
+            type: string
+            example: Bad request
+          details:
+            type: string
+            example: Invalid parameter
+securityDefinitions:
+  oauth2:
+    type: oauth2
+    flow: accessCode
+    authorizationUrl: ''
+    tokenUrl: ''
+    scopes: {}
+tags:
+  - name: Books
+  - name: Users
+  - name: Auth

@@ -1,0 +1,29 @@
+{
+    "CrossLanguagePackageId": "BookAPI",
+    "CrossLanguageDefinitionId": {
+        "bookapi.models.BookCreateRequest": "BookAPI.BookCreateRequest",
+        "bookapi.models.BookDetail": "BookAPI.BookDetail",
+        "bookapi.models.BookDetailResponse": "BookAPI.BookDetailResponse",
+        "bookapi.models.BookListItem": "BookAPI.BookListItem",
+        "bookapi.models.BookListResponse": "BookAPI.BookListResponse",
+        "bookapi.models.BookUpdateRequest": "BookAPI.BookUpdateRequest",
+        "bookapi.models.ErrorDetail": "BookAPI.ErrorDetail",
+        "bookapi.models.ErrorResponse": "BookAPI.ErrorResponse",
+        "bookapi.models.PaginationMetadata": "BookAPI.PaginationMetadata",
+        "bookapi.models.RefreshTokenResponse": "BookAPI.refreshToken.Response.anonymous",
+        "bookapi.operations.BooksOperations.list_books": "BookAPI.Books.listBooks",
+        "bookapi.aio.operations.BooksOperations.list_books": "BookAPI.Books.listBooks",
+        "bookapi.operations.BooksOperations.create_book": "BookAPI.Books.createBook",
+        "bookapi.aio.operations.BooksOperations.create_book": "BookAPI.Books.createBook",
+        "bookapi.operations.BookDetailAPIOperations.get_book": "BookAPI.BookDetailAPI.getBook",
+        "bookapi.aio.operations.BookDetailAPIOperations.get_book": "BookAPI.BookDetailAPI.getBook",
+        "bookapi.operations.BookDetailAPIOperations.update_book": "BookAPI.BookDetailAPI.updateBook",
+        "bookapi.aio.operations.BookDetailAPIOperations.update_book": "BookAPI.BookDetailAPI.updateBook",
+        "bookapi.operations.BookDetailAPIOperations.delete_book": "BookAPI.BookDetailAPI.deleteBook",
+        "bookapi.aio.operations.BookDetailAPIOperations.delete_book": "BookAPI.BookDetailAPI.deleteBook",
+        "bookapi.operations.UsersOperations.get_users": "BookAPI.Users.getUsers",
+        "bookapi.aio.operations.UsersOperations.get_users": "BookAPI.Users.getUsers",
+        "bookapi.operations.AuthOperations.refresh_token": "BookAPI.Auth.refreshToken",
+        "bookapi.aio.operations.AuthOperations.refresh_token": "BookAPI.Auth.refreshToken"
+    }
+}
