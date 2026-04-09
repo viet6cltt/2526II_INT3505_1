@@ -36,15 +36,14 @@ USERS = {
 }
 
 AUTH_CODES = {}
-ACCESS_TOKENS = {}
-
-def create_access_token(username):
+def create_access_token(username, scope):
     now = datetime.now(timezone.utc)
     exp = now + timedelta(seconds=3600)
     
     payload = {
         "sub": str(username),
         "type": "access",
+        "scope": scope,
         "iat": now.timestamp(),
         "nbf": now.timestamp(),
         "exp": exp.timestamp(),
@@ -53,25 +52,25 @@ def create_access_token(username):
     }
     
     token = jwt.encode(payload, JWT_SECRET, algorithm='HS256')
-    ACCESS_TOKENS[token] = username
     return token
 
 def verify_access_token(token):
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'], audience='client-app', issuer='auth-server')
-        return payload['sub']
+        return payload
     except jwt.ExpiredSignatureError:
         return None
     except jwt.InvalidTokenError:
         return None
     
+# bên phía AS 
 @app.route('/authorize', methods=['GET'])
 def authorize():
-    response_type = request.args.get('response_type') # must be "code"
-    client_id = request.args.get('client_id') # must match CLIENT_ID
-    redirect_uri = request.args.get('redirect_uri') # must match CLIENT_REDIRECT_URI
-    state = request.args.get('state') # optional, will be sent back to client
-    scope = request.args.get('scope', 'profile')
+    response_type = request.args.get('response_type') # phải là "code"
+    client_id = request.args.get('client_id') # phải là client_id đã đăng ký với AS
+    redirect_uri = request.args.get('redirect_uri') # đã được đăng ký trước với AS
+    state = request.args.get('state') # optional, dùng để chống CSRF
+    scope = request.args.get('scope', 'profile') # optional
     
     if response_type != 'code':
         return jsonify({"error": "Unsupported response type"}), 400
@@ -95,6 +94,7 @@ def authorize():
         '''.format(client_id=client_id, redirect_uri=redirect_uri, state=state, scope=scope) 
         
     username = session['username']
+    # tạo authorization code 
     code = secrets.token_urlsafe(16)
     AUTH_CODES[code] = {
         "username": username,
@@ -105,14 +105,13 @@ def authorize():
         "redirect_uri": redirect_uri
     }
     
-    print(f"code: {code}, AUTH_CODES: {AUTH_CODES.get(code)}")
-    
     params = {"code": code }
     if state:
         params["state"] = state
         
     return redirect(f"{redirect_uri}?{urlencode(params)}")
     
+# bên phía AS 
 @app.route('/login', methods=['POST'])
 def login():
     username = request.form.get('username')
@@ -140,9 +139,10 @@ def login():
 
     return redirect(f"/authorize?{query}")
 
+# bên phía AS 
 @app.route('/token', methods=['POST'])
 def token():
-    grant_type = request.form.get('grant_type') # must be "authorization_code"
+    grant_type = request.form.get('grant_type') # phải là "authorization_code"
     code = request.form.get('code')
     client_id = request.form.get('client_id')
     client_secret = request.form.get('client_secret')
@@ -169,8 +169,11 @@ def token():
         print("Invalid redirect_uri")
         return jsonify({"error": "Invalid redirect_uri"}), 400
     
-    auth_code['used'] = True
-    access_token = create_access_token(auth_code['username'])
+    auth_code['used'] = True # đánh dấu code đã được sử dụng
+    
+    # tạo access token
+    access_token = create_access_token(auth_code['username'],
+                                       scope=auth_code['scope'])
     
     return jsonify({
         "message": "Token issued successfully",
@@ -188,18 +191,23 @@ def profile():
         return jsonify({"error": "Missing or invalid Authorization header"}), 401
     
     token = auth_header.split(' ')[1]
-    username = verify_access_token(token) 
-    if not username:
+    token_data = verify_access_token(token) 
+    if not token_data:
         return jsonify({"error": "Invalid or expired access token"}), 401
+    
+    username = token_data['sub']
+    scope = token_data['scope']
     
     user = USERS.get(username)
     if not user:
         return jsonify({"error": "User not found"}), 404
+    if 'profile' not in scope:
+        return jsonify({"error": "Insufficient scope"}), 403
     
     return jsonify({
         "username": username,
-        "name": user['name']
-
+        "name": user['name'],
+        "scope": scope
     })   
     
 @app.route('/logout', methods=['GET'])
@@ -208,6 +216,6 @@ def logout():
     return jsonify({"message": "Logged out successfully"}), 200
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5001)
 
 
