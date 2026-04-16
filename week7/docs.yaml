@@ -1,0 +1,481 @@
+openapi: 3.0.0
+info:
+  title: Product Management API
+  description: RESTful API supports product management.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost
+    description: Dev server 
+
+paths:
+  /products:
+    get:
+      summary: Get list of products
+      description: Retrieve a paginated list of products with optional filtering
+      tags:
+        - Products
+      parameters:
+        - name: page
+          in: query
+          description: Page number starting from 1
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            example: 10
+
+        - name: category
+          in: query
+          description: Filter products by category
+          required: false
+          schema:
+            type: string
+            example: Electronics
+
+        - name: search
+          in: query
+          description: Search products by name
+          required: false
+          schema:
+            type: string
+            example: iPhone
+
+      responses:
+        '200':
+          description: Successfully retrieved list of products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProductListItem'
+                  metadata:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 10
+                      total:
+                        type: integer
+                        example: 1000
+        '400':
+          description: Bad request (invalid query parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: Invalid query parameter 'page'
+                  details: Page must be >= 1
+        '401':
+          description: Unauthorized (missing or invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 403
+                  message: Forbidden
+                  details: You do not have permission to access this resource
+
+    post:
+      summary: Create a new product
+      description: Add a new product into the system
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreateRequest'
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetail'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: Bad Request
+                  details: Invalid product data
+        '401':
+          description: Unauthorized (missing or invalid token)
+        '403':
+          description: Forbidden
+
+  /products/{id}:
+    get:
+      summary: Get product by id
+      description: Retrieve detailed information of a product by id
+      tags:
+        - Products
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product id
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+      responses:
+        '200':
+          description: Successfully retrieved product detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetail'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: Bad Request
+                  details: Need product id to get product information
+        '401':
+          description: Unauthorized (missing or invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 403
+                  message: Forbidden
+                  details: You do not have permission to access this resource
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 404
+                  message: Not Found
+                  details: Product not found
+
+    put:
+      summary: Update product
+      description: Update full info of a product
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product id
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdateRequest'
+      responses:
+        '200':
+          description: Product updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetail'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: 400
+                  message: Bad Request
+                  details: Invalid product data
+        '401':
+          description: Unauthorized (missing or invalid token)
+        '403':
+          description: Forbidden
+        '404':
+          description: Product not found
+
+    delete:
+      summary: Delete product
+      description: Delete a product by id
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product id
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+      responses:
+        '200':
+          description: Product deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Product deleted successfully
+        '401':
+          description: Unauthorized (missing or invalid token)
+        '403':
+          description: Forbidden
+        '404':
+          description: Product not found
+
+  /users:
+    get:
+      summary: Get users with debug mode
+      tags:
+        - Users
+      parameters:
+        - name: debug
+          in: cookie
+          required: false
+          schema:
+            type: integer
+            enum: [0, 1]
+            default: 0
+          description: Enable debug mode
+
+        - name: theme
+          in: cookie
+          required: false
+          schema:
+            type: string
+            enum: [light, dark]
+          description: UI theme preference
+      responses:
+        '200':
+          description: OK
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      description: Create new access token from refresh token
+      tags:
+        - Auth
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Successfully generated new access token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    description: New JWT access token
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '401':
+          description: Unauthorized - refresh token not valid
+        '403':
+          description: Forbidden - refresh token is revoked.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: refresh_token
+
+  schemas:
+    ProductListItem:
+      type: object
+      required:
+        - id
+        - name
+        - price
+        - category
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: iPhone 15
+        price:
+          type: number
+          format: float
+          example: 999.99
+        category:
+          type: string
+          example: Electronics
+
+    ProductDetail:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - price
+        - stock
+        - category
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: iPhone 15
+        description:
+          type: string
+          example: Latest Apple smartphone with advanced camera system
+        price:
+          type: number
+          format: float
+          example: 999.99
+        stock:
+          type: integer
+          example: 50
+        category:
+          type: string
+          example: Electronics
+
+    ProductCreateRequest:
+      type: object
+      required:
+        - name
+        - description
+        - price
+        - stock
+        - category
+      properties:
+        name:
+          type: string
+          example: iPhone 15
+        description:
+          type: string
+          example: Latest Apple smartphone with advanced camera system
+        price:
+          type: number
+          format: float
+          example: 999.99
+        stock:
+          type: integer
+          example: 50
+        category:
+          type: string
+          example: Electronics
+
+    ProductUpdateRequest:
+      type: object
+      required:
+        - name
+        - description
+        - price
+        - stock
+        - category
+      properties:
+        name:
+          type: string
+          example: iPhone 15 Pro
+        description:
+          type: string
+          example: Updated product description
+        price:
+          type: number
+          format: float
+          example: 1099.99
+        stock:
+          type: integer
+          example: 30
+        category:
+          type: string
+          example: Electronics
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: integer
+              example: 400
+            message:
+              type: string
+              example: Bad request
+            details:
+              type: string
+              example: Invalid parameter
