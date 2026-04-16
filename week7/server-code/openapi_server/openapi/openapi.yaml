@@ -1,0 +1,603 @@
+openapi: 3.0.0
+info:
+  description: RESTful API supports product management.
+  title: Product Management API
+  version: 1.0.0
+servers:
+- description: Dev server
+  url: http://localhost
+paths:
+  /auth/refresh:
+    post:
+      description: Create new access token from refresh token
+      operationId: auth_refresh_post
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_auth_refresh_post_200_response"
+          description: Successfully generated new access token
+        "401":
+          description: Unauthorized - refresh token not valid
+        "403":
+          description: Forbidden - refresh token is revoked.
+      security:
+      - cookieAuth: []
+      summary: Refresh access token
+      tags:
+      - Auth
+      x-openapi-router-controller: openapi_server.controllers.auth_controller
+  /products:
+    get:
+      description: Retrieve a paginated list of products with optional filtering
+      operationId: products_get
+      parameters:
+      - description: Page number starting from 1
+        explode: true
+        in: query
+        name: page
+        required: false
+        schema:
+          example: 1
+          minimum: 1
+          type: integer
+        style: form
+      - description: Number of items per page
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          example: 10
+          maximum: 20
+          minimum: 1
+          type: integer
+        style: form
+      - description: Filter products by category
+        explode: true
+        in: query
+        name: category
+        required: false
+        schema:
+          example: Electronics
+          type: string
+        style: form
+      - description: Search products by name
+        explode: true
+        in: query
+        name: search
+        required: false
+        schema:
+          example: iPhone
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_products_get_200_response"
+          description: Successfully retrieved list of products
+        "400":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 400
+                  message: Invalid query parameter 'page'
+                  details: Page must be >= 1
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Bad request (invalid query parameters)
+        "401":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unauthorized (missing or invalid token)
+        "403":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 403
+                  message: Forbidden
+                  details: You do not have permission to access this resource
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Forbidden
+      summary: Get list of products
+      tags:
+      - Products
+      x-openapi-router-controller: openapi_server.controllers.products_controller
+    post:
+      description: Add a new product into the system
+      operationId: products_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductCreateRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductDetail"
+          description: Product created successfully
+        "400":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 400
+                  message: Bad Request
+                  details: Invalid product data
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Bad request
+        "401":
+          description: Unauthorized (missing or invalid token)
+        "403":
+          description: Forbidden
+      security:
+      - bearerAuth: []
+      summary: Create a new product
+      tags:
+      - Products
+      x-openapi-router-controller: openapi_server.controllers.products_controller
+  /products/{id}:
+    delete:
+      description: Delete a product by id
+      operationId: products_id_delete
+      parameters:
+      - description: Product id
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          example: 1
+          minimum: 1
+          type: integer
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_products__id__delete_200_response"
+          description: Product deleted successfully
+        "401":
+          description: Unauthorized (missing or invalid token)
+        "403":
+          description: Forbidden
+        "404":
+          description: Product not found
+      security:
+      - bearerAuth: []
+      summary: Delete product
+      tags:
+      - Products
+      x-openapi-router-controller: openapi_server.controllers.products_controller
+    get:
+      description: Retrieve detailed information of a product by id
+      operationId: products_id_get
+      parameters:
+      - description: Product id
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          example: 1
+          minimum: 1
+          type: integer
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductDetail"
+          description: Successfully retrieved product detail
+        "400":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 400
+                  message: Bad Request
+                  details: Need product id to get product information
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Bad request
+        "401":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 401
+                  message: Unauthorized
+                  details: Missing or invalid authentication token
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Unauthorized (missing or invalid token)
+        "403":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 403
+                  message: Forbidden
+                  details: You do not have permission to access this resource
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 404
+                  message: Not Found
+                  details: Product not found
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Product not found
+      summary: Get product by id
+      tags:
+      - Products
+      x-openapi-router-controller: openapi_server.controllers.products_controller
+    put:
+      description: Update full info of a product
+      operationId: products_id_put
+      parameters:
+      - description: Product id
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          example: 1
+          minimum: 1
+          type: integer
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductUpdateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductDetail"
+          description: Product updated successfully
+        "400":
+          content:
+            application/json:
+              example:
+                error:
+                  code: 400
+                  message: Bad Request
+                  details: Invalid product data
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: Bad request
+        "401":
+          description: Unauthorized (missing or invalid token)
+        "403":
+          description: Forbidden
+        "404":
+          description: Product not found
+      security:
+      - bearerAuth: []
+      summary: Update product
+      tags:
+      - Products
+      x-openapi-router-controller: openapi_server.controllers.products_controller
+  /users:
+    get:
+      operationId: users_get
+      parameters:
+      - description: Enable debug mode
+        explode: true
+        in: cookie
+        name: debug
+        required: false
+        schema:
+          default: 0
+          enum:
+          - 0
+          - 1
+          type: integer
+        style: form
+      - description: UI theme preference
+        explode: true
+        in: cookie
+        name: theme
+        required: false
+        schema:
+          enum:
+          - light
+          - dark
+          type: string
+        style: form
+      responses:
+        "200":
+          description: OK
+      summary: Get users with debug mode
+      tags:
+      - Users
+      x-openapi-router-controller: openapi_server.controllers.users_controller
+components:
+  schemas:
+    ProductListItem:
+      example:
+        price: 999.99
+        name: iPhone 15
+        id: 1
+        category: Electronics
+      properties:
+        id:
+          example: 1
+          title: id
+          type: integer
+        name:
+          example: iPhone 15
+          title: name
+          type: string
+        price:
+          example: 999.99
+          format: float
+          title: price
+          type: number
+        category:
+          example: Electronics
+          title: category
+          type: string
+      required:
+      - category
+      - id
+      - name
+      - price
+      title: ProductListItem
+      type: object
+    ProductDetail:
+      example:
+        price: 999.99
+        name: iPhone 15
+        description: Latest Apple smartphone with advanced camera system
+        id: 1
+        stock: 50
+        category: Electronics
+      properties:
+        id:
+          example: 1
+          title: id
+          type: integer
+        name:
+          example: iPhone 15
+          title: name
+          type: string
+        description:
+          example: Latest Apple smartphone with advanced camera system
+          title: description
+          type: string
+        price:
+          example: 999.99
+          format: float
+          title: price
+          type: number
+        stock:
+          example: 50
+          title: stock
+          type: integer
+        category:
+          example: Electronics
+          title: category
+          type: string
+      required:
+      - category
+      - description
+      - id
+      - name
+      - price
+      - stock
+      title: ProductDetail
+      type: object
+    ProductCreateRequest:
+      example:
+        price: 999.99
+        name: iPhone 15
+        description: Latest Apple smartphone with advanced camera system
+        stock: 50
+        category: Electronics
+      properties:
+        name:
+          example: iPhone 15
+          title: name
+          type: string
+        description:
+          example: Latest Apple smartphone with advanced camera system
+          title: description
+          type: string
+        price:
+          example: 999.99
+          format: float
+          title: price
+          type: number
+        stock:
+          example: 50
+          title: stock
+          type: integer
+        category:
+          example: Electronics
+          title: category
+          type: string
+      required:
+      - category
+      - description
+      - name
+      - price
+      - stock
+      title: ProductCreateRequest
+      type: object
+    ProductUpdateRequest:
+      example:
+        price: 1099.99
+        name: iPhone 15 Pro
+        description: Updated product description
+        stock: 30
+        category: Electronics
+      properties:
+        name:
+          example: iPhone 15 Pro
+          title: name
+          type: string
+        description:
+          example: Updated product description
+          title: description
+          type: string
+        price:
+          example: 1099.99
+          format: float
+          title: price
+          type: number
+        stock:
+          example: 30
+          title: stock
+          type: integer
+        category:
+          example: Electronics
+          title: category
+          type: string
+      required:
+      - category
+      - description
+      - name
+      - price
+      - stock
+      title: ProductUpdateRequest
+      type: object
+    Error:
+      example:
+        error:
+          code: 400
+          details: Invalid parameter
+          message: Bad request
+      properties:
+        error:
+          $ref: "#/components/schemas/Error_error"
+      title: Error
+      type: object
+    _products_get_200_response_metadata:
+      example:
+        total: 1000
+        limit: 10
+        page: 1
+      properties:
+        page:
+          example: 1
+          title: page
+          type: integer
+        limit:
+          example: 10
+          title: limit
+          type: integer
+        total:
+          example: 1000
+          title: total
+          type: integer
+      title: _products_get_200_response_metadata
+      type: object
+    _products_get_200_response:
+      example:
+        metadata:
+          total: 1000
+          limit: 10
+          page: 1
+        data:
+        - price: 999.99
+          name: iPhone 15
+          id: 1
+          category: Electronics
+        - price: 999.99
+          name: iPhone 15
+          id: 1
+          category: Electronics
+      properties:
+        data:
+          items:
+            $ref: "#/components/schemas/ProductListItem"
+          title: data
+          type: array
+        metadata:
+          $ref: "#/components/schemas/_products_get_200_response_metadata"
+      title: _products_get_200_response
+      type: object
+    _products__id__delete_200_response:
+      example:
+        message: Product deleted successfully
+      properties:
+        message:
+          example: Product deleted successfully
+          title: message
+          type: string
+      title: _products__id__delete_200_response
+      type: object
+    _auth_refresh_post_200_response:
+      example:
+        accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      properties:
+        accessToken:
+          description: New JWT access token
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+          title: accessToken
+          type: string
+      title: _auth_refresh_post_200_response
+      type: object
+    Error_error:
+      example:
+        code: 400
+        details: Invalid parameter
+        message: Bad request
+      properties:
+        code:
+          example: 400
+          title: code
+          type: integer
+        message:
+          example: Bad request
+          title: message
+          type: string
+        details:
+          example: Invalid parameter
+          title: details
+          type: string
+      required:
+      - code
+      - message
+      title: Error_error
+      type: object
+  securitySchemes:
+    bearerAuth:
+      bearerFormat: JWT
+      scheme: bearer
+      type: http
+      x-bearerInfoFunc: openapi_server.controllers.security_controller.info_from_bearerAuth
+    cookieAuth:
+      in: cookie
+      name: refresh_token
+      type: apiKey
+      x-apikeyInfoFunc: openapi_server.controllers.security_controller.info_from_cookieAuth
