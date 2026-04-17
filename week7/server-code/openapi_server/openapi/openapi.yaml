@@ -77,41 +77,32 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/_products_get_200_response"
-          description: Successfully retrieved list of products
+                $ref: "#/components/schemas/ProductListItem"
+          description: Product list
         "400":
           content:
             application/json:
-              example:
-                error:
-                  code: 400
-                  message: Invalid query parameter 'page'
-                  details: Page must be >= 1
               schema:
-                $ref: "#/components/schemas/Error"
-          description: Bad request (invalid query parameters)
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Bad request
         "401":
           content:
             application/json:
-              example:
-                error:
-                  code: 401
-                  message: Unauthorized
-                  details: Missing or invalid authentication token
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/ErrorResponse"
           description: Unauthorized (missing or invalid token)
         "403":
           content:
             application/json:
-              example:
-                error:
-                  code: 403
-                  message: Forbidden
-                  details: You do not have permission to access this resource
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/ErrorResponse"
           description: Forbidden
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Internal server error
       summary: Get list of products
       tags:
       - Products
@@ -130,23 +121,32 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProductDetail"
+                $ref: "#/components/schemas/Product"
           description: Product created successfully
         "400":
           content:
             application/json:
-              example:
-                error:
-                  code: 400
-                  message: Bad Request
-                  details: Invalid product data
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/ErrorResponse"
           description: Bad request
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
           description: Unauthorized (missing or invalid token)
         "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
           description: Forbidden
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Internal server error
       security:
       - bearerAuth: []
       summary: Create a new product
@@ -175,12 +175,24 @@ paths:
               schema:
                 $ref: "#/components/schemas/_products__id__delete_200_response"
           description: Product deleted successfully
-        "401":
-          description: Unauthorized (missing or invalid token)
-        "403":
-          description: Forbidden
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Bad request
         "404":
-          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Resource not found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Internal server error
       security:
       - bearerAuth: []
       summary: Delete product
@@ -206,52 +218,32 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProductDetail"
+                $ref: "#/components/schemas/Product"
           description: Successfully retrieved product detail
         "400":
           content:
             application/json:
-              example:
-                error:
-                  code: 400
-                  message: Bad Request
-                  details: Need product id to get product information
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/ErrorResponse"
           description: Bad request
         "401":
           content:
             application/json:
-              example:
-                error:
-                  code: 401
-                  message: Unauthorized
-                  details: Missing or invalid authentication token
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/ErrorResponse"
           description: Unauthorized (missing or invalid token)
-        "403":
-          content:
-            application/json:
-              example:
-                error:
-                  code: 403
-                  message: Forbidden
-                  details: You do not have permission to access this resource
-              schema:
-                $ref: "#/components/schemas/Error"
-          description: Forbidden
         "404":
           content:
             application/json:
-              example:
-                error:
-                  code: 404
-                  message: Not Found
-                  details: Product not found
               schema:
-                $ref: "#/components/schemas/Error"
-          description: Product not found
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Resource not found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Internal server error
       summary: Get product by id
       tags:
       - Products
@@ -281,25 +273,26 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProductDetail"
+                $ref: "#/components/schemas/Product"
           description: Product updated successfully
         "400":
           content:
             application/json:
-              example:
-                error:
-                  code: 400
-                  message: Bad Request
-                  details: Invalid product data
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/ErrorResponse"
           description: Bad request
-        "401":
-          description: Unauthorized (missing or invalid token)
-        "403":
-          description: Forbidden
         "404":
-          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Resource not found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Internal server error
       security:
       - bearerAuth: []
       summary: Update product
@@ -341,210 +334,184 @@ paths:
       - Users
       x-openapi-router-controller: openapi_server.controllers.users_controller
 components:
+  responses:
+    BadRequest:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+      description: Bad request
+    Unauthorized:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+      description: Unauthorized (missing or invalid token)
+    Forbidden:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+      description: Forbidden
+    NotFound:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+      description: Resource not found
+    InternalServerError:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+      description: Internal server error
   schemas:
+    ProductBase:
+      example:
+        price: 999.99
+        name: iPhone 20
+        description: The latest iPhone with amazing features.
+        stock: 100
+        category: Electronics
+      properties:
+        name:
+          example: iPhone 20
+          title: name
+          type: string
+        description:
+          example: The latest iPhone with amazing features.
+          title: description
+          type: string
+        price:
+          example: 999.99
+          format: float
+          minimum: 0
+          title: price
+          type: number
+        stock:
+          example: 100
+          minimum: 0
+          title: stock
+          type: integer
+        category:
+          example: Electronics
+          title: category
+          type: string
+      required:
+      - category
+      - description
+      - name
+      - price
+      title: ProductBase
+      type: object
+    Product:
+      allOf:
+      - $ref: "#/components/schemas/ProductBase"
+      - properties:
+          id:
+            example: jsdfasdfsdjfhdsh
+            type: string
+          createdAt:
+            example: 2024-01-01T12:00:00Z
+            format: date-time
+            type: string
+          updatedAt:
+            example: 2024-01-10T15:30:00Z
+            format: date-time
+            type: string
+        required:
+        - id
+        type: object
+      example:
+        createdAt: 2024-01-01T12:00:00Z
+        price: 999.99
+        name: iPhone 20
+        description: The latest iPhone with amazing features.
+        id: jsdfasdfsdjfhdsh
+        stock: 100
+        category: Electronics
+        updatedAt: 2024-01-10T15:30:00Z
+      title: Product
     ProductListItem:
-      example:
-        price: 999.99
-        name: iPhone 15
-        id: 1
-        category: Electronics
-      properties:
-        id:
-          example: 1
-          title: id
-          type: integer
-        name:
-          example: iPhone 15
-          title: name
-          type: string
-        price:
-          example: 999.99
-          format: float
-          title: price
-          type: number
-        category:
-          example: Electronics
-          title: category
-          type: string
-      required:
-      - category
-      - id
-      - name
-      - price
-      title: ProductListItem
-      type: object
-    ProductDetail:
-      example:
-        price: 999.99
-        name: iPhone 15
-        description: Latest Apple smartphone with advanced camera system
-        id: 1
-        stock: 50
-        category: Electronics
-      properties:
-        id:
-          example: 1
-          title: id
-          type: integer
-        name:
-          example: iPhone 15
-          title: name
-          type: string
-        description:
-          example: Latest Apple smartphone with advanced camera system
-          title: description
-          type: string
-        price:
-          example: 999.99
-          format: float
-          title: price
-          type: number
-        stock:
-          example: 50
-          title: stock
-          type: integer
-        category:
-          example: Electronics
-          title: category
-          type: string
-      required:
-      - category
-      - description
-      - id
-      - name
-      - price
-      - stock
-      title: ProductDetail
-      type: object
-    ProductCreateRequest:
-      example:
-        price: 999.99
-        name: iPhone 15
-        description: Latest Apple smartphone with advanced camera system
-        stock: 50
-        category: Electronics
-      properties:
-        name:
-          example: iPhone 15
-          title: name
-          type: string
-        description:
-          example: Latest Apple smartphone with advanced camera system
-          title: description
-          type: string
-        price:
-          example: 999.99
-          format: float
-          title: price
-          type: number
-        stock:
-          example: 50
-          title: stock
-          type: integer
-        category:
-          example: Electronics
-          title: category
-          type: string
-      required:
-      - category
-      - description
-      - name
-      - price
-      - stock
-      title: ProductCreateRequest
-      type: object
-    ProductUpdateRequest:
-      example:
-        price: 1099.99
-        name: iPhone 15 Pro
-        description: Updated product description
-        stock: 30
-        category: Electronics
-      properties:
-        name:
-          example: iPhone 15 Pro
-          title: name
-          type: string
-        description:
-          example: Updated product description
-          title: description
-          type: string
-        price:
-          example: 1099.99
-          format: float
-          title: price
-          type: number
-        stock:
-          example: 30
-          title: stock
-          type: integer
-        category:
-          example: Electronics
-          title: category
-          type: string
-      required:
-      - category
-      - description
-      - name
-      - price
-      - stock
-      title: ProductUpdateRequest
-      type: object
-    Error:
-      example:
-        error:
-          code: 400
-          details: Invalid parameter
-          message: Bad request
-      properties:
-        error:
-          $ref: "#/components/schemas/Error_error"
-      title: Error
-      type: object
-    _products_get_200_response_metadata:
-      example:
-        total: 1000
-        limit: 10
-        page: 1
-      properties:
-        page:
-          example: 1
-          title: page
-          type: integer
-        limit:
-          example: 10
-          title: limit
-          type: integer
-        total:
-          example: 1000
-          title: total
-          type: integer
-      title: _products_get_200_response_metadata
-      type: object
-    _products_get_200_response:
       example:
         metadata:
           total: 1000
           limit: 10
           page: 1
         data:
-        - price: 999.99
-          name: iPhone 15
-          id: 1
+        - createdAt: 2024-01-01T12:00:00Z
+          price: 999.99
+          name: iPhone 20
+          description: The latest iPhone with amazing features.
+          id: jsdfasdfsdjfhdsh
+          stock: 100
           category: Electronics
-        - price: 999.99
-          name: iPhone 15
-          id: 1
+          updatedAt: 2024-01-10T15:30:00Z
+        - createdAt: 2024-01-01T12:00:00Z
+          price: 999.99
+          name: iPhone 20
+          description: The latest iPhone with amazing features.
+          id: jsdfasdfsdjfhdsh
+          stock: 100
           category: Electronics
+          updatedAt: 2024-01-10T15:30:00Z
       properties:
         data:
           items:
-            $ref: "#/components/schemas/ProductListItem"
+            $ref: "#/components/schemas/Product"
           title: data
           type: array
         metadata:
-          $ref: "#/components/schemas/_products_get_200_response_metadata"
-      title: _products_get_200_response
+          $ref: "#/components/schemas/ProductListItem_metadata"
+      title: ProductListItem
+      type: object
+    ProductCreateRequest:
+      $ref: "#/components/schemas/ProductBase"
+    ProductUpdateRequest:
+      $ref: "#/components/schemas/ProductBase"
+    MessageResponse:
+      properties:
+        message:
+          example: Product deleted successfully
+          type: string
+      required:
+      - message
+      type: object
+    ApiError:
+      example:
+        code: 400
+        details: Invalid product data
+        message: Bad Request
+      properties:
+        code:
+          example: 400
+          title: code
+          type: integer
+        message:
+          example: Bad Request
+          title: message
+          type: string
+        details:
+          example: Invalid product data
+          title: details
+          type: string
+      required:
+      - code
+      - message
+      title: ApiError
+      type: object
+    ErrorResponse:
+      example:
+        error:
+          code: 400
+          details: Invalid product data
+          message: Bad Request
+      properties:
+        error:
+          $ref: "#/components/schemas/ApiError"
+      required:
+      - error
+      title: ErrorResponse
       type: object
     _products__id__delete_200_response:
       example:
@@ -567,28 +534,29 @@ components:
           type: string
       title: _auth_refresh_post_200_response
       type: object
-    Error_error:
+    ProductListItem_metadata:
       example:
-        code: 400
-        details: Invalid parameter
-        message: Bad request
+        total: 1000
+        limit: 10
+        page: 1
       properties:
-        code:
-          example: 400
-          title: code
+        page:
+          example: 1
+          title: page
           type: integer
-        message:
-          example: Bad request
-          title: message
-          type: string
-        details:
-          example: Invalid parameter
-          title: details
-          type: string
+        limit:
+          example: 10
+          title: limit
+          type: integer
+        total:
+          example: 1000
+          title: total
+          type: integer
       required:
-      - code
-      - message
-      title: Error_error
+      - limit
+      - page
+      - total
+      title: ProductListItem_metadata
       type: object
   securitySchemes:
     bearerAuth:

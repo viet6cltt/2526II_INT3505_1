@@ -53,61 +53,19 @@ paths:
 
       responses:
         '200':
-          description: Successfully retrieved list of products
+          description: Product list
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ProductListItem'
-                  metadata:
-                    type: object
-                    properties:
-                      page:
-                        type: integer
-                        example: 1
-                      limit:
-                        type: integer
-                        example: 10
-                      total:
-                        type: integer
-                        example: 1000
+                $ref: '#/components/schemas/ProductListItem'
         '400':
-          description: Bad request (invalid query parameters)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                error:
-                  code: 400
-                  message: Invalid query parameter 'page'
-                  details: Page must be >= 1
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: Unauthorized (missing or invalid token)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                error:
-                  code: 401
-                  message: Unauthorized
-                  details: Missing or invalid authentication token
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                error:
-                  code: 403
-                  message: Forbidden
-                  details: You do not have permission to access this resource
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
     post:
       summary: Create a new product
@@ -128,22 +86,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProductDetail'
+                $ref: '#/components/schemas/Product'
         '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                error:
-                  code: 400
-                  message: Bad Request
-                  details: Invalid product data
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: Unauthorized (missing or invalid token)
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /products/{id}:
     get:
@@ -166,52 +117,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProductDetail'
+                $ref: '#/components/schemas/Product'
         '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                error:
-                  code: 400
-                  message: Bad Request
-                  details: Need product id to get product information
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: Unauthorized (missing or invalid token)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                error:
-                  code: 401
-                  message: Unauthorized
-                  details: Missing or invalid authentication token
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                error:
-                  code: 403
-                  message: Forbidden
-                  details: You do not have permission to access this resource
+          $ref: '#/components/responses/Unauthorized'   
         '404':
-          description: Product not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                error:
-                  code: 404
-                  message: Not Found
-                  details: Product not found
-
+          $ref: '#/components/responses/NotFound' 
+        '500':
+          $ref: '#/components/responses/InternalServerError'
     put:
       summary: Update product
       description: Update full info of a product
@@ -240,24 +154,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProductDetail'
+                $ref: '#/components/schemas/Product'
         '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                error:
-                  code: 400
-                  message: Bad Request
-                  details: Invalid product data
-        '401':
-          description: Unauthorized (missing or invalid token)
-        '403':
-          description: Forbidden
+          $ref: '#/components/responses/BadRequest'
         '404':
-          description: Product not found
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
     delete:
       summary: Delete product
@@ -286,12 +189,12 @@ paths:
                   message:
                     type: string
                     example: Product deleted successfully
-        '401':
-          description: Unauthorized (missing or invalid token)
-        '403':
-          description: Forbidden
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '404':
-          description: Product not found
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /users:
     get:
@@ -357,125 +260,145 @@ components:
       name: refresh_token
 
   schemas:
-    ProductListItem:
+    ProductBase:
       type: object
-      required:
-        - id
-        - name
-        - price
-        - category
-      properties:
-        id:
-          type: integer
-          example: 1
-        name:
-          type: string
-          example: iPhone 15
-        price:
-          type: number
-          format: float
-          example: 999.99
-        category:
-          type: string
-          example: Electronics
-
-    ProductDetail:
-      type: object
-      required:
-        - id
+      required: 
         - name
         - description
         - price
-        - stock
         - category
       properties:
-        id:
-          type: integer
-          example: 1
         name:
           type: string
-          example: iPhone 15
+          example: iPhone 20
         description:
           type: string
-          example: Latest Apple smartphone with advanced camera system
+          example: The latest iPhone with amazing features.
         price:
           type: number
           format: float
+          minimum: 0
           example: 999.99
         stock:
           type: integer
-          example: 50
+          minimum: 0
+          example: 100
         category:
           type: string
           example: Electronics
-
-    ProductCreateRequest:
+    Product:
+      allOf:
+        - $ref: '#/components/schemas/ProductBase'
+        - type: object
+          required:
+            - id 
+          properties:
+            id:
+              type: string
+              example: "jsdfasdfsdjfhdsh"
+            createdAt:
+              type: string
+              format: date-time
+              example: 2024-01-01T12:00:00Z
+            updatedAt:
+              type: string
+              format: date-time
+              example: 2024-01-10T15:30:00Z
+    ProductListItem:    
       type: object
-      required:
-        - name
-        - description
-        - price
-        - stock
-        - category
-      properties:
-        name:
-          type: string
-          example: iPhone 15
-        description:
-          type: string
-          example: Latest Apple smartphone with advanced camera system
-        price:
-          type: number
-          format: float
-          example: 999.99
-        stock:
-          type: integer
-          example: 50
-        category:
-          type: string
-          example: Electronics
-
-    ProductUpdateRequest:
-      type: object
-      required:
-        - name
-        - description
-        - price
-        - stock
-        - category
-      properties:
-        name:
-          type: string
-          example: iPhone 15 Pro
-        description:
-          type: string
-          example: Updated product description
-        price:
-          type: number
-          format: float
-          example: 1099.99
-        stock:
-          type: integer
-          example: 30
-        category:
-          type: string
-          example: Electronics
-
-    Error:
-      type: object
-      properties:
-        error:
+      properties:   
+        data: 
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        metadata:
           type: object
           required:
-            - code
-            - message
+            - page
+            - limit
+            - total
           properties:
-            code:
+            page:
               type: integer
-              example: 400
-            message:
-              type: string
-              example: Bad request
-            details:
-              type: string
-              example: Invalid parameter
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            total:
+              type: integer
+              example: 1000
+
+    ProductCreateRequest:
+      $ref: '#/components/schemas/ProductBase'
+
+    ProductUpdateRequest:
+      $ref: '#/components/schemas/ProductBase'
+    
+    MessageResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: Product deleted successfully
+    ApiError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Bad Request
+        details:
+          type: string
+          example: Invalid product data
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: '#/components/schemas/ApiError'
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      
+    Unauthorized:
+      description: Unauthorized (missing or invalid token)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    

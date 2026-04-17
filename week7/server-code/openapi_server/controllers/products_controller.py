@@ -1,90 +1,201 @@
-from flask import jsonify, request
-
-import connexion
+from datetime import datetime
+import re
 from typing import Dict
 from typing import Tuple
 from typing import Union
 
-from openapi_server.models.error import Error  # noqa: E501
-from openapi_server.models.product_create_request import ProductCreateRequest  # noqa: E501
-from openapi_server.models.product_detail import ProductDetail  # noqa: E501
-from openapi_server.models.product_update_request import ProductUpdateRequest  # noqa: E501
-from openapi_server.models.products_get200_response import ProductsGet200Response  # noqa: E501
-from openapi_server.models.products_id_delete200_response import ProductsIdDelete200Response  # noqa: E501
-from openapi_server import util
+import connexion
+from pymongo import ASCENDING
+from pymongo.errors import PyMongoError
 
-from openapi_server.db import db
-from openapi_server.models.product import ProductModel
-
-
-def _error_response(status_code: int, message: str, details: str | None = None):
-    body = {
-        "error": {
-            "code": status_code,
-            "message": message,
-        }
-    }
-    if details:
-        body["error"]["details"] = details
-
-    return body, status_code
+from openapi_server.database import get_products_collection
+from openapi_server.models.api_error import ApiError
+from openapi_server.models.error_response import ErrorResponse
+from openapi_server.models.product import Product
+from openapi_server.models.product_base import ProductBase
+from openapi_server.models.product_list_item import ProductListItem
+from openapi_server.models.product_list_item_metadata import ProductListItemMetadata
+from openapi_server.models.products_id_delete200_response import ProductsIdDelete200Response
 
 
-def _normalize_payload(payload):
-    if payload is None:
-        return None
+def _utcnow() -> datetime:
+    return datetime.utcnow()
 
-    if hasattr(payload, "to_dict"):
-        return payload.to_dict()
 
-    if isinstance(payload, dict):
+def _error_response(status_code: int, message: str, details: str = None):
+    return (
+        ErrorResponse(
+            error=ApiError(
+                code=status_code,
+                message=message,
+                details=details,
+            )
+        ),
+        status_code,
+    )
+
+
+def _server_error_response(details: str):
+    return _error_response(500, "Internal Server Error", details)
+
+
+def _coerce_product_body(body) -> Union[ProductBase, Tuple[ErrorResponse, int]]:
+    payload = body
+    if payload is None and connexion.request.is_json:
+        payload = connexion.request.get_json()
+
+    if isinstance(payload, ProductBase):
         return payload
+
+    if not isinstance(payload, dict):
+        return _error_response(400, "Bad Request", "Request body must be a JSON object")
+
+    try:
+        return ProductBase.from_dict(payload)
+    except (TypeError, ValueError) as exc:
+        return _error_response(400, "Bad Request", str(exc))
+
+
+def _validate_product_payload(product_base: ProductBase):
+    required_fields = {
+        "name": product_base.name,
+        "description": product_base.description,
+        "price": product_base.price,
+        "category": product_base.category,
+    }
+
+    for field_name, value in required_fields.items():
+        if value is None:
+            return _error_response(400, "Bad Request", f"`{field_name}` is required")
+
+    if product_base.price is not None and product_base.price < 0:
+        return _error_response(400, "Bad Request", "`price` must be greater than or equal to 0")
+
+    if product_base.stock is not None and product_base.stock < 0:
+        return _error_response(400, "Bad Request", "`stock` must be greater than or equal to 0")
 
     return None
 
 
+def _build_product(product_id: str, product_base: ProductBase, created_at: datetime) -> Product:
+    return Product(
+        id=product_id,
+        name=product_base.name,
+        description=product_base.description,
+        price=float(product_base.price),
+        stock=product_base.stock if product_base.stock is not None else 0,
+        category=product_base.category,
+        created_at=created_at,
+        updated_at=_utcnow(),
+    )
+
+
+def _product_to_document(product: Product) -> Dict[str, object]:
+    return {
+        "_id": product.id,
+        "id": product.id,
+        "name": product.name,
+        "description": product.description,
+        "price": product.price,
+        "stock": product.stock,
+        "category": product.category,
+        "created_at": product.created_at,
+        "updated_at": product.updated_at,
+    }
+
+
+def _document_to_product(document: Dict[str, object]) -> Product:
+    created_at = document.get("created_at") or document.get("createdAt") or _utcnow()
+    updated_at = document.get("updated_at") or document.get("updatedAt") or created_at
+
+    return Product(
+        id=str(document.get("id", document.get("_id", ""))),
+        name=document["name"],
+        description=document["description"],
+        price=float(document["price"]),
+        stock=int(document.get("stock", 0)),
+        category=document["category"],
+        created_at=created_at,
+        updated_at=updated_at,
+    )
+
+
+def _get_collection():
+    return get_products_collection()
+
+
+def _get_product_or_404(product_id: int):
+    try:
+        document = _get_collection().find_one({"id": str(product_id)})
+    except PyMongoError as exc:
+        return _server_error_response(str(exc))
+
+    if document is None:
+        return _error_response(404, "Not Found", f"Product with id `{product_id}` was not found")
+
+    return _document_to_product(document)
+
+
+def _get_next_product_id() -> str:
+    numeric_ids = [
+        int(item["id"])
+        for item in _get_collection().find(
+            {"id": {"$regex": r"^\d+$"}},
+            projection={"id": 1},
+        )
+        if str(item.get("id", "")).isdigit()
+    ]
+    return str(max(numeric_ids, default=0) + 1)
+
+
 def products_get(page=None, limit=None, category=None, search=None):  # noqa: E501
-    """List products
+    """Get list of products
 
-    Retrieve a paginated list of products # noqa: E501
+    Retrieve a paginated list of products with optional filtering # noqa: E501
 
-    :param page:
+    :param page: Page number starting from 1
     :type page: int
-    :param limit:
+    :param limit: Number of items per page
     :type limit: int
-    :param category:
+    :param category: Filter products by category
     :type category: str
-    :param search:
+    :param search: Search products by name
     :type search: str
 
-    :rtype: Union[ProductsGet200Response, Tuple[ProductsGet200Response, int], Tuple[ProductsGet200Response, int, Dict[str, str]]]
+    :rtype: Union[ProductListItem, Tuple[ProductListItem, int], Tuple[ProductListItem, int, Dict[str, str]]
     """
+    page = page or 1
+    limit = limit or 10
+
+    if page < 1:
+        return _error_response(400, "Bad Request", "`page` must be greater than or equal to 1")
+
+    if limit < 1 or limit > 20:
+        return _error_response(400, "Bad Request", "`limit` must be between 1 and 20")
+
+    query = {}
+    if category:
+        query["category"] = {"$regex": f"^{re.escape(category)}$", "$options": "i"}
+    if search:
+        query["name"] = {"$regex": re.escape(search), "$options": "i"}
+
     try:
-        page = int(page or request.args.get("page", 1))
-        limit = int(limit or request.args.get("limit", 10))
-        category = category or request.args.get("category")
-        search = search or request.args.get("search")
-
-        if page < 1:
-            return _error_response(400, "Bad Request", "Page must be >= 1")
-
-        if limit < 1 or limit > 100:
-            return _error_response(400, "Bad Request", "Limit must be between 1 and 100")
-
-        result = ProductModel.find_all(
-            db=db,
-            page=page,
-            limit=limit,
-            category=category,
-            search=search,
+        collection = _get_collection()
+        total = collection.count_documents(query)
+        cursor = (
+            collection.find(query)
+            .sort("id", ASCENDING)
+            .skip((page - 1) * limit)
+            .limit(limit)
         )
+        products = [_document_to_product(document) for document in cursor]
+    except PyMongoError as exc:
+        return _server_error_response(str(exc))
 
-        return result, 200
-
-    except ValueError:
-        return _error_response(400, "Bad Request", "Invalid query parameter")
-    except Exception as e:
-        return _error_response(500, "Internal Server Error", str(e))
+    return ProductListItem(
+        data=products,
+        metadata=ProductListItemMetadata(page=page, limit=limit, total=total),
+    )
 
 
 def products_id_delete(id):  # noqa: E501
@@ -95,27 +206,17 @@ def products_id_delete(id):  # noqa: E501
     :param id: Product id
     :type id: int
 
-    :rtype: Union[ProductsIdDelete200Response, Tuple[ProductsIdDelete200Response, int], Tuple[ProductsIdDelete200Response, int, Dict[str, str]]]
+    :rtype: Union[ProductsIdDelete200Response, Tuple[ProductsIdDelete200Response, int], Tuple[ProductsIdDelete200Response, int, Dict[str, str]]
     """
     try:
-        product_id = int(id)
+        result = _get_collection().delete_one({"id": str(id)})
+    except PyMongoError as exc:
+        return _server_error_response(str(exc))
 
-        if product_id < 1:
-            return _error_response(400, "Bad Request", "Product id must be >= 1")
+    if result.deleted_count == 0:
+        return _error_response(404, "Not Found", f"Product with id `{id}` was not found")
 
-        deleted = ProductModel.delete(db=db, product_id=product_id)
-
-        if not deleted:
-            return _error_response(404, "Not Found", "Product not found")
-
-        return {
-            "message": "Product deleted successfully"
-        }, 200
-
-    except ValueError:
-        return _error_response(400, "Bad Request", "Product id must be an integer")
-    except Exception as e:
-        return _error_response(500, "Internal Server Error", str(e))
+    return ProductsIdDelete200Response(message="Product deleted successfully")
 
 
 def products_id_get(id):  # noqa: E501
@@ -126,25 +227,9 @@ def products_id_get(id):  # noqa: E501
     :param id: Product id
     :type id: int
 
-    :rtype: Union[ProductDetail, Tuple[ProductDetail, int], Tuple[ProductDetail, int, Dict[str, str]]]
+    :rtype: Union[Product, Tuple[Product, int], Tuple[Product, int, Dict[str, str]]
     """
-    try:
-        product_id = int(id)
-
-        if product_id < 1:
-            return _error_response(400, "Bad Request", "Product id must be >= 1")
-
-        doc = ProductModel.find_by_id(db=db, product_id=product_id)
-
-        if not doc:
-            return _error_response(404, "Not Found", "Product not found")
-
-        return ProductModel.to_detail(doc), 200
-
-    except ValueError:
-        return _error_response(400, "Bad Request", "Product id must be an integer")
-    except Exception as e:
-        return _error_response(500, "Internal Server Error", str(e))
+    return _get_product_or_404(id)
 
 
 def products_id_put(id, body):  # noqa: E501
@@ -155,45 +240,33 @@ def products_id_put(id, body):  # noqa: E501
     :param id: Product id
     :type id: int
     :param body:
-    :type body: dict | bytes
+    :type body:
 
-    :rtype: Union[ProductDetail, Tuple[ProductDetail, int], Tuple[ProductDetail, int, Dict[str, str]]]
+    :rtype: Union[Product, Tuple[Product, int], Tuple[Product, int, Dict[str, str]]
     """
+    existing_product = _get_product_or_404(id)
+    if isinstance(existing_product, tuple):
+        return existing_product
+
+    product_base = _coerce_product_body(body)
+    if isinstance(product_base, tuple):
+        return product_base
+
+    validation_error = _validate_product_payload(product_base)
+    if validation_error:
+        return validation_error
+
+    updated_product = _build_product(str(id), product_base, existing_product.created_at)
+
     try:
-        product_id = int(id)
-
-        if product_id < 1:
-            return _error_response(400, "Bad Request", "Product id must be >= 1")
-
-        product_update_request = body
-        if connexion.request.is_json:
-            product_update_request = ProductUpdateRequest.from_dict(
-                connexion.request.get_json()
-            )
-
-        payload = _normalize_payload(product_update_request)
-        if payload is None:
-            return _error_response(400, "Bad Request", "Request body must be valid JSON")
-
-        error = ProductModel.validate_payload(payload, partial=False)
-        if error:
-            return _error_response(400, "Bad Request", error)
-
-        updated = ProductModel.update(
-            db=db,
-            product_id=product_id,
-            payload=payload,
+        _get_collection().replace_one(
+            {"id": str(id)},
+            _product_to_document(updated_product),
         )
+    except PyMongoError as exc:
+        return _server_error_response(str(exc))
 
-        if not updated:
-            return _error_response(404, "Not Found", "Product not found")
-
-        return ProductModel.to_detail(updated), 200
-
-    except ValueError:
-        return _error_response(400, "Bad Request", "Product id must be an integer")
-    except Exception as e:
-        return _error_response(500, "Internal Server Error", str(e))
+    return updated_product
 
 
 def products_post(body):  # noqa: E501
@@ -202,28 +275,24 @@ def products_post(body):  # noqa: E501
     Add a new product into the system # noqa: E501
 
     :param body:
-    :type body: dict | bytes
+    :type body:
 
-    :rtype: Union[ProductDetail, Tuple[ProductDetail, int], Tuple[ProductDetail, int, Dict[str, str]]]
+    :rtype: Union[Product, Tuple[Product, int], Tuple[Product, int, Dict[str, str]]
     """
+    product_base = _coerce_product_body(body)
+    if isinstance(product_base, tuple):
+        return product_base
+
+    validation_error = _validate_product_payload(product_base)
+    if validation_error:
+        return validation_error
+
     try:
-        product_create_request = body
-        if connexion.request.is_json:
-            product_create_request = ProductCreateRequest.from_dict(
-                connexion.request.get_json()
-            )
+        product_id = _get_next_product_id()
+        created_at = _utcnow()
+        product = _build_product(product_id, product_base, created_at)
+        _get_collection().insert_one(_product_to_document(product))
+    except PyMongoError as exc:
+        return _server_error_response(str(exc))
 
-        payload = _normalize_payload(product_create_request)
-        if payload is None:
-            return _error_response(400, "Bad Request", "Request body must be valid JSON")
-
-        error = ProductModel.validate_payload(payload, partial=False)
-        if error:
-            return _error_response(400, "Bad Request", error)
-
-        created = ProductModel.create(db=db, payload=payload)
-
-        return ProductModel.to_detail(created), 201
-
-    except Exception as e:
-        return _error_response(500, "Internal Server Error", str(e))
+    return product, 201

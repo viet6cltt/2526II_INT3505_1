@@ -1,12 +1,11 @@
 # flake8: noqa
 # import models into model package
+from openapi_server.models.api_error import ApiError
 from openapi_server.models.auth_refresh_post200_response import AuthRefreshPost200Response
-from openapi_server.models.error import Error
-from openapi_server.models.error_error import ErrorError
-from openapi_server.models.product_create_request import ProductCreateRequest
-from openapi_server.models.product_detail import ProductDetail
+from openapi_server.models.error_response import ErrorResponse
+from openapi_server.models.message_response import MessageResponse
+from openapi_server.models.product import Product
+from openapi_server.models.product_base import ProductBase
 from openapi_server.models.product_list_item import ProductListItem
-from openapi_server.models.product_update_request import ProductUpdateRequest
-from openapi_server.models.products_get200_response import ProductsGet200Response
-from openapi_server.models.products_get200_response_metadata import ProductsGet200ResponseMetadata
+from openapi_server.models.product_list_item_metadata import ProductListItemMetadata
 from openapi_server.models.products_id_delete200_response import ProductsIdDelete200Response

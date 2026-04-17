@@ -2,11 +2,10 @@ import unittest
 
 from flask import json
 
-from openapi_server.models.error import Error  # noqa: E501
-from openapi_server.models.product_create_request import ProductCreateRequest  # noqa: E501
-from openapi_server.models.product_detail import ProductDetail  # noqa: E501
-from openapi_server.models.product_update_request import ProductUpdateRequest  # noqa: E501
-from openapi_server.models.products_get200_response import ProductsGet200Response  # noqa: E501
+from openapi_server.models.error_response import ErrorResponse  # noqa: E501
+from openapi_server.models.product import Product  # noqa: E501
+from openapi_server.models.product_base import ProductBase  # noqa: E501
+from openapi_server.models.product_list_item import ProductListItem  # noqa: E501
 from openapi_server.models.products_id_delete200_response import ProductsIdDelete200Response  # noqa: E501
 from openapi_server.test import BaseTestCase
 
@@ -70,7 +69,7 @@ class TestProductsController(BaseTestCase):
 
         Update product
         """
-        product_update_request = {"price":1099.99,"name":"iPhone 15 Pro","description":"Updated product description","stock":30,"category":"Electronics"}
+        body = {"price":999.99,"name":"iPhone 20","description":"The latest iPhone with amazing features.","stock":100,"category":"Electronics"}
         headers = { 
             'Accept': 'application/json',
             'Content-Type': 'application/json',
@@ -80,7 +79,7 @@ class TestProductsController(BaseTestCase):
             '/products/{id}'.format(id=1),
             method='PUT',
             headers=headers,
-            data=json.dumps(product_update_request),
+            data=json.dumps(body),
             content_type='application/json')
         self.assert200(response,
                        'Response body is : ' + response.data.decode('utf-8'))
@@ -90,7 +89,7 @@ class TestProductsController(BaseTestCase):
 
         Create a new product
         """
-        product_create_request = {"price":999.99,"name":"iPhone 15","description":"Latest Apple smartphone with advanced camera system","stock":50,"category":"Electronics"}
+        body = {"price":999.99,"name":"iPhone 20","description":"The latest iPhone with amazing features.","stock":100,"category":"Electronics"}
         headers = { 
             'Accept': 'application/json',
             'Content-Type': 'application/json',
@@ -100,10 +99,10 @@ class TestProductsController(BaseTestCase):
             '/products',
             method='POST',
             headers=headers,
-            data=json.dumps(product_create_request),
+            data=json.dumps(body),
             content_type='application/json')
-        self.assert200(response,
-                       'Response body is : ' + response.data.decode('utf-8'))
+        self.assertStatus(response, 201,
+                          'Response body is : ' + response.data.decode('utf-8'))
 
 
 if __name__ == '__main__':
