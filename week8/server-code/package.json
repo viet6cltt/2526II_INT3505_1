@@ -6,6 +6,6 @@
     "test:api": "newman run postman/book-api.postman_collection.json -e postman/book-api.postman_environment.json"
   },
   "devDependencies": {
-    "newman": "^6.2.1"
+    "newman": "^6.2.2"
   }
 }
