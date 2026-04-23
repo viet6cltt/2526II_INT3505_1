@@ -1,0 +1,11 @@
+{
+  "name": "book-api-newman-tests",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test:api": "newman run postman/book-api.postman_collection.json -e postman/book-api.postman_environment.json"
+  },
+  "devDependencies": {
+    "newman": "^6.2.1"
+  }
+}

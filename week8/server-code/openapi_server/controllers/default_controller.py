@@ -50,11 +50,11 @@ def books_get():  # noqa: E501
         return _internal_error()
 
 
-def books_id_delete(id):  # noqa: E501
+def books_id_delete(id_):  # noqa: E501
     """Delete book"""
     try:
         try:
-            object_id = ObjectId(id)
+            object_id = ObjectId(id_)
         except InvalidId:
             return _bad_request("Invalid book id")
 
@@ -70,16 +70,15 @@ def books_id_delete(id):  # noqa: E501
         return _internal_error()
 
 
-def books_id_get(id):  # noqa: E501
+def books_id_get(id_):  # noqa: E501
     """
     Get book by id
     """
-
     try:
         collection = get_books_collection()
 
         try:
-            object_id = ObjectId(id)
+            object_id = ObjectId(id_)
         except InvalidId:
             return _bad_request("Invalid book id")
 
@@ -93,11 +92,11 @@ def books_id_get(id):  # noqa: E501
         return _internal_error()
 
 
-def books_id_put(id, body):  # noqa: E501
+def books_id_put(id_, body):  # noqa: E501
     """Update book"""
     try:
         try:
-            object_id = ObjectId(id)
+            object_id = ObjectId(id_)
         except InvalidId:
             return _bad_request("Invalid book id")
 

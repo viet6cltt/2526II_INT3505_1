@@ -36,6 +36,39 @@ sudo pip install tox
 tox
 ```
 
+## Postman and Newman API tests
+
+The automated API test collection is in:
+
+```
+postman/book-api.postman_collection.json
+```
+
+Start the Flask server first:
+
+```bash
+python3 -m openapi_server
+```
+
+Then run the Postman collection with Newman from another terminal:
+
+```bash
+npm install
+npm run test:api
+```
+
+Or run Newman directly:
+
+```bash
+npx newman run postman/book-api.postman_collection.json -e postman/book-api.postman_environment.json
+```
+
+The default environment uses:
+
+```
+http://127.0.0.1:8080/api/v1
+```
+
 ## Running with Docker
 
 To run the server on a Docker container, please execute the following from the root directory:
