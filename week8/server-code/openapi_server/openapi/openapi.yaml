@@ -1,0 +1,233 @@
+openapi: 3.0.0
+info:
+  title: Book API
+  version: 1.0.0
+servers:
+- url: /api/v1
+paths:
+  /books:
+    get:
+      operationId: books_get
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookList"
+          description: List of books
+      summary: Get all books
+      x-openapi-router-controller: openapi_server.controllers.default_controller
+    post:
+      operationId: books_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookInput"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+          description: Book created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Invalid request data
+      summary: Create book
+      x-openapi-router-controller: openapi_server.controllers.default_controller
+  /books/{id}:
+    delete:
+      operationId: books_id_delete
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+          description: Delete success
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Book not found
+      summary: Delete book
+      x-openapi-router-controller: openapi_server.controllers.default_controller
+    get:
+      operationId: books_id_get
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+          description: Book detail
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Book not found
+      summary: Get book by id
+      x-openapi-router-controller: openapi_server.controllers.default_controller
+    put:
+      operationId: books_id_put
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookInput"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+          description: Updated book
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Invalid request data
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Book not found
+      summary: Update book
+      x-openapi-router-controller: openapi_server.controllers.default_controller
+components:
+  parameters:
+    BookId:
+      explode: false
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+      style: simple
+  schemas:
+    Book:
+      example:
+        createdAt: 2000-01-23T04:56:07.000+00:00
+        author: Robert C. Martin
+        price: 29.99
+        id: 64f123abc
+        publishedYear: 2008
+        title: Clean Code
+        updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        id:
+          example: 64f123abc
+          title: id
+          type: string
+        title:
+          example: Clean Code
+          title: title
+          type: string
+        author:
+          example: Robert C. Martin
+          title: author
+          type: string
+        price:
+          example: 29.99
+          title: price
+          type: number
+        publishedYear:
+          example: 2008
+          title: publishedYear
+          type: integer
+        createdAt:
+          format: date-time
+          title: createdAt
+          type: string
+        updatedAt:
+          format: date-time
+          title: updatedAt
+          type: string
+      title: Book
+      type: object
+    BookInput:
+      example:
+        author: Robert C. Martin
+        price: 29.99
+        publishedYear: 2008
+        title: Clean Code
+      properties:
+        title:
+          example: Clean Code
+          title: title
+          type: string
+        author:
+          example: Robert C. Martin
+          title: author
+          type: string
+        price:
+          example: 29.99
+          title: price
+          type: number
+        publishedYear:
+          example: 2008
+          title: publishedYear
+          type: integer
+      required:
+      - author
+      - title
+      title: BookInput
+      type: object
+    BookList:
+      items:
+        $ref: "#/components/schemas/Book"
+      type: array
+    DeleteResponse:
+      example:
+        message: Deleted successfully
+      properties:
+        message:
+          example: Deleted successfully
+          title: message
+          type: string
+      title: DeleteResponse
+      type: object
+    ErrorResponse:
+      example:
+        message: Invalid request data
+      properties:
+        message:
+          example: Invalid request data
+          title: message
+          type: string
+      title: ErrorResponse
+      type: object

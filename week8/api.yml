@@ -1,0 +1,181 @@
+openapi: 3.0.0
+info:
+  title: Book API
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+
+paths:
+  /books:
+    get:
+      summary: Get all books
+      responses:
+        '200':
+          description: List of books
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookList'
+
+    post:
+      summary: Create book
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookInput'
+      responses:
+        '201':
+          description: Book created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /books/{id}:
+    get:
+      summary: Get book by id
+      parameters:
+        - $ref: '#/components/parameters/BookId'
+      responses:
+        '200':
+          description: Book detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '404':
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update book
+      parameters:
+        - $ref: '#/components/parameters/BookId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookInput'
+      responses:
+        '200':
+          description: Updated book
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete book
+      parameters:
+        - $ref: '#/components/parameters/BookId'
+      responses:
+        '200':
+          description: Delete success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '404':
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  parameters:
+    BookId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    Book:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "64f123abc"
+        title:
+          type: string
+          example: "Clean Code"
+        author:
+          type: string
+          example: "Robert C. Martin"
+        price:
+          type: number
+          example: 29.99
+        publishedYear:
+          type: integer
+          example: 2008
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BookInput:
+      type: object
+      required:
+        - title
+        - author
+      properties:
+        title:
+          type: string
+          example: "Clean Code"
+        author:
+          type: string
+          example: "Robert C. Martin"
+        price:
+          type: number
+          example: 29.99
+        publishedYear:
+          type: integer
+          example: 2008
+
+    BookList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Book'
+
+    DeleteResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Deleted successfully"
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Invalid request data"
