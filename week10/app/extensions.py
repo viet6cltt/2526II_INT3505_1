@@ -1,15 +1,15 @@
 from flask_sqlalchemy import SQLAlchemy
-
-try:
-    import redis
-except ImportError:
-    redis = None
+import redis
 
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-db = SQLAlchemy()
-redis_client = redis.from_url("redis://localhost:6379/0") if redis else None
+from prometheus_flask_exporter import PrometheusMetrics
+
+metrics = PrometheusMetrics.for_app_factory(path=None)
+
+db = SQLAlchemy() 
+redis_client = redis.from_url("redis://localhost:6379/0")
 
 
 limiter = Limiter(
