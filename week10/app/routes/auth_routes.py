@@ -2,8 +2,24 @@ from flask import Blueprint, current_app, request, jsonify, g, make_response
 from functools import wraps
 import jwt
 from app.extensions import db, redis_client, limiter
-from app.models import User, UserRole
+from app.models import AuditLog, User, UserRole
 from app.utils.auth_utils import create_access_token, create_refresh_token, decode_token, revoke_token
+
+def write_audit_log(action, status, user_id=None, details=None):
+    audit_log = AuditLog(
+        user_id=user_id,
+        action=action,
+        status=status,
+        ip_address=request.headers.get('X-Forwarded-For', request.remote_addr),
+        user_agent=request.headers.get('User-Agent', '')[:255],
+    )
+    audit_log.set_details(details)
+
+    try:
+        db.session.add(audit_log)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
 
 def _extract_bearer_token():
     auth_header = request.headers.get('Authorization', '')
@@ -88,14 +104,31 @@ def login():
     password = data.get('password', "")
     
     if not username or not password:
+        write_audit_log(
+            "auth.login",
+            "failure",
+            details={"reason": "missing_credentials", "username": username}
+        )
         return jsonify({"error": "Username and password are required"}), 400
     
     user = User.query.filter_by(username=username).first()
     if not user or not user.check_password(password):
+        write_audit_log(
+            "auth.login",
+            "failure",
+            user_id=user.id if user else None,
+            details={"reason": "invalid_credentials", "username": username}
+        )
         return jsonify({"error": "Invalid username or password"}), 401
     
     access_token = create_access_token(user.id, user.role.value)
     refresh_token = create_refresh_token(user.id)
+    write_audit_log(
+        "auth.login",
+        "success",
+        user_id=user.id,
+        details={"username": user.username, "role": user.role.value}
+    )
     
     response = make_response(jsonify({
         "message": "Login successfully",
@@ -126,9 +159,19 @@ def register():
     email = data.get('email', "")
     
     if not username or not password:
+        write_audit_log(
+            "auth.register",
+            "failure",
+            details={"reason": "missing_credentials", "username": username, "email": email}
+        )
         return jsonify({"error": "Username and password are required"}), 400
     
     if User.query.filter_by(username=username).first():
+        write_audit_log(
+            "auth.register",
+            "failure",
+            details={"reason": "username_exists", "username": username, "email": email}
+        )
         return jsonify({"error": "Username already exists"}), 400
     
     user = User(username=username, email=email)
@@ -139,6 +182,12 @@ def register():
         
     db.session.add(user)
     db.session.commit()
+    write_audit_log(
+        "auth.register",
+        "success",
+        user_id=user.id,
+        details={"username": user.username, "email": user.email, "role": user.role.value}
+    )
     
     return jsonify({
         "message": "User registered successfully",
@@ -156,9 +205,21 @@ def admin_register():
     email = data.get('email', "")
     
     if not username or not password:
+        write_audit_log(
+            "auth.register_admin",
+            "failure",
+            user_id=g.current_user.id,
+            details={"reason": "missing_credentials", "username": username, "email": email}
+        )
         return jsonify({"error": "Username and password are required"}), 400
     
     if User.query.filter_by(username=username).first():
+        write_audit_log(
+            "auth.register_admin",
+            "failure",
+            user_id=g.current_user.id,
+            details={"reason": "username_exists", "username": username, "email": email}
+        )
         return jsonify({"error": "Username already exists"}), 400
     
     user = User(username=username, email=email)
@@ -168,6 +229,16 @@ def admin_register():
         
     db.session.add(user)
     db.session.commit()
+    write_audit_log(
+        "auth.register_admin",
+        "success",
+        user_id=g.current_user.id,
+        details={
+            "created_user_id": user.id,
+            "created_username": user.username,
+            "created_email": user.email,
+        }
+    )
     
     return jsonify({
         "message": "User registered successfully",
@@ -180,6 +251,12 @@ def refresh():
     user = g.current_user
     
     access_token = create_access_token(user.id, user.role.value)
+    write_audit_log(
+        "auth.refresh",
+        "success",
+        user_id=user.id,
+        details={"username": user.username}
+    )
     
     return jsonify({
         "message": "Token refreshed successfully",
@@ -206,8 +283,33 @@ def logout():
         
     response = make_response(jsonify({"message": "Logged out successfully"}))
     response.set_cookie("refresh_token", "", expires=0, httponly=True, secure=True, samesite="None")
+    write_audit_log(
+        "auth.logout",
+        "success",
+        user_id=g.current_user.id,
+        details={"username": g.current_user.username}
+    )
     
     return response, 200
+
+@auth_bp.route('/audit-logs', methods=['GET'])
+@jwt_required(token_type="access")
+@role_required("admin")
+def get_audit_logs():
+    limit = request.args.get("limit", default=50, type=int)
+    limit = min(max(limit, 1), 200)
+
+    logs = (
+        AuditLog.query
+        .order_by(AuditLog.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    return jsonify({
+        "message": "Audit logs retrieved successfully",
+        "data": [log.to_dict() for log in logs]
+    }), 200
     
     
     
