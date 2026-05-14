@@ -10,6 +10,9 @@ class Config:
     REFRESH_TOKEN_EXPIRES_IN = int(os.getenv("REFRESH_TOKEN_EXPIRES_IN", 86400))
     SQLALCHEMY_DATABASE_URI = "sqlite:///app.db"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+    LOG_FORMAT = os.getenv("LOG_FORMAT", "json")
+    WERKZEUG_LOG_LEVEL = os.getenv("WERKZEUG_LOG_LEVEL", "WARNING")
     NOTIFICATION_SERVICE_URL = os.getenv(
         "NOTIFICATION_SERVICE_URL",
         "http://127.0.0.1:5003"

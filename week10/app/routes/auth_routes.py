@@ -1,5 +1,6 @@
 from flask import Blueprint, current_app, request, jsonify, g, make_response
 from functools import wraps
+import logging
 import jwt
 import pybreaker
 from app.extensions import db, limiter
@@ -12,13 +13,32 @@ from app.utils.token_revocation import (
     token_revocation_breaker_status,
 )
 
+logger = logging.getLogger(__name__)
+audit_logger = logging.getLogger("app.audit")
+
+
 def write_audit_log(action, status, user_id=None, details=None):
+    log_extra = {
+        "event_type": "audit",
+        "action": action,
+        "status": status,
+        "user_id": user_id,
+        "details": details or {},
+        "ip_address": request.headers.get('X-Forwarded-For', request.remote_addr),
+        "user_agent": request.headers.get('User-Agent', '')[:255],
+    }
+
+    if status == "success":
+        audit_logger.info("audit event", extra=log_extra)
+    else:
+        audit_logger.warning("audit event", extra=log_extra)
+
     audit_log = AuditLog(
         user_id=user_id,
         action=action,
         status=status,
-        ip_address=request.headers.get('X-Forwarded-For', request.remote_addr),
-        user_agent=request.headers.get('User-Agent', '')[:255],
+        ip_address=log_extra["ip_address"],
+        user_agent=log_extra["user_agent"],
     )
     audit_log.set_details(details)
 
@@ -27,6 +47,10 @@ def write_audit_log(action, status, user_id=None, details=None):
         db.session.commit()
     except Exception:
         db.session.rollback()
+        logger.exception(
+            "failed to persist audit log",
+            extra={"action": action, "status": status, "user_id": user_id},
+        )
 
 def _extract_bearer_token():
     auth_header = request.headers.get('Authorization', '')
@@ -56,36 +80,64 @@ def jwt_required(token_type="access"):
             try:
                 payload = decode_token(token)
             except jwt.ExpiredSignatureError:
+                logger.info("expired token rejected", extra={"token_type": token_type})
                 return jsonify({"error": "Token has expired"}), 401
-            except jwt.InvalidTokenError:
-                return jsonify({"error": "Invalid token"}), 401
             except jwt.InvalidIssuerError:
+                logger.warning("token with invalid issuer rejected", extra={"token_type": token_type})
                 return jsonify({"error": "Invalid token issuer"}), 401
             except jwt.InvalidAudienceError:
+                logger.warning("token with invalid audience rejected", extra={"token_type": token_type})
                 return jsonify({"error": "Invalid token audience"}), 401
+            except jwt.InvalidTokenError:
+                logger.warning("invalid token rejected", extra={"token_type": token_type})
+                return jsonify({"error": "Invalid token"}), 401
             
             if payload.get("type") != token_type:
+                logger.warning(
+                    "token with invalid type rejected",
+                    extra={
+                        "expected_token_type": token_type,
+                        "actual_token_type": payload.get("type"),
+                        "user_id": payload.get("sub"),
+                    },
+                )
                 return jsonify({"error": f"Invalid token type. Expected '{token_type}'"}), 401
             
             user = User.query.get(payload.get("sub"))
             if not user:
+                logger.warning(
+                    "token references missing user",
+                    extra={"token_type": token_type, "user_id": payload.get("sub")},
+                )
                 return jsonify({"error": "User not found"}), 404
             
             # handle token revocation
             try:
-                revoked_token = is_token_revoked(payload['jti'])
+                revoked_token = is_token_revoked(payload["jti"])
             except pybreaker.CircuitBreakerError:
+                logger.error(
+                    "token revocation circuit breaker is open",
+                    extra={"user_id": user.id, "token_type": token_type},
+                )
                 return jsonify({
                     "error": "Token revocation service is temporarily unavailable",
                     "circuit_breaker": token_revocation_breaker_status(),
                 }), 503
             except Exception:
+                logger.exception(
+                    "token revocation check failed",
+                    extra={"user_id": user.id, "token_type": token_type},
+                )
                 return jsonify({
                     "error": "Token revocation service failed",
                     "circuit_breaker": token_revocation_breaker_status(),
                 }), 503
 
             if revoked_token:
+                logger.warning(
+                    "revoked token rejected",
+                    extra={"user_id": user.id, "token_type": token_type},
+                )
                 return jsonify({"error": "Token has been revoked"}), 401
             
             g.current_user = user
@@ -124,6 +176,10 @@ def login():
     password = data.get('password', "")
     
     if not username or not password:
+        logger.warning(
+            "login rejected because credentials are missing",
+            extra={"username": username},
+        )
         write_audit_log(
             "auth.login",
             "failure",
@@ -133,6 +189,10 @@ def login():
     
     user = User.query.filter_by(username=username).first()
     if not user or not user.check_password(password):
+        logger.warning(
+            "login rejected because credentials are invalid",
+            extra={"username": username, "user_id": user.id if user else None},
+        )
         write_audit_log(
             "auth.login",
             "failure",
@@ -143,6 +203,10 @@ def login():
     
     access_token = create_access_token(user.id, user.role.value)
     refresh_token = create_refresh_token(user.id)
+    logger.info(
+        "user logged in",
+        extra={"user_id": user.id, "username": user.username, "role": user.role.value},
+    )
     write_audit_log(
         "auth.login",
         "success",
@@ -179,6 +243,10 @@ def register():
     email = data.get('email', "")
     
     if not username or not password:
+        logger.warning(
+            "registration rejected because credentials are missing",
+            extra={"username": username, "email": email},
+        )
         write_audit_log(
             "auth.register",
             "failure",
@@ -187,6 +255,10 @@ def register():
         return jsonify({"error": "Username and password are required"}), 400
     
     if User.query.filter_by(username=username).first():
+        logger.warning(
+            "registration rejected because username already exists",
+            extra={"username": username, "email": email},
+        )
         write_audit_log(
             "auth.register",
             "failure",
@@ -202,6 +274,10 @@ def register():
         
     db.session.add(user)
     db.session.commit()
+    logger.info(
+        "user registered",
+        extra={"user_id": user.id, "username": user.username, "role": user.role.value},
+    )
     write_audit_log(
         "auth.register",
         "success",
@@ -209,14 +285,33 @@ def register():
         details={"username": user.username, "email": user.email, "role": user.role.value}
     )
     try:
-        send_welcome_notification(user)
-        write_audit_log(
-            "notification.welcome",
-            "success",
-            user_id=user.id,
-            details={"username": user.username, "email": user.email}
-        )
+        result = send_welcome_notification(user)
+        if result.get("status") == "fallback":
+            write_audit_log(
+                "notification.welcome",
+                "failure",
+                user_id=user.id,
+                details={
+                    "reason": "fallback",
+                    "username": user.username,
+                    "email": user.email,
+                }
+            )
+        else:
+            write_audit_log(
+                "notification.welcome",
+                "success",
+                user_id=user.id,
+                details={
+                    "username": user.username,
+                    "email": user.email,
+                }
+            )
     except Exception as exc:
+        logger.exception(
+            "welcome notification failed",
+            extra={"user_id": user.id, "username": user.username},
+        )
         write_audit_log(
             "notification.welcome",
             "failure",
@@ -240,6 +335,10 @@ def admin_register():
     email = data.get('email', "")
     
     if not username or not password:
+        logger.warning(
+            "admin registration rejected because credentials are missing",
+            extra={"actor_user_id": g.current_user.id, "username": username, "email": email},
+        )
         write_audit_log(
             "auth.register_admin",
             "failure",
@@ -249,6 +348,10 @@ def admin_register():
         return jsonify({"error": "Username and password are required"}), 400
     
     if User.query.filter_by(username=username).first():
+        logger.warning(
+            "admin registration rejected because username already exists",
+            extra={"actor_user_id": g.current_user.id, "username": username, "email": email},
+        )
         write_audit_log(
             "auth.register_admin",
             "failure",
@@ -264,6 +367,14 @@ def admin_register():
         
     db.session.add(user)
     db.session.commit()
+    logger.info(
+        "admin user registered",
+        extra={
+            "actor_user_id": g.current_user.id,
+            "created_user_id": user.id,
+            "created_username": user.username,
+        },
+    )
     write_audit_log(
         "auth.register_admin",
         "success",
@@ -286,6 +397,7 @@ def refresh():
     user = g.current_user
     
     access_token = create_access_token(user.id, user.role.value)
+    logger.info("access token refreshed", extra={"user_id": user.id})
     write_audit_log(
         "auth.refresh",
         "success",
@@ -314,10 +426,15 @@ def logout():
             refresh_payload = decode_token(refresh_token)
             revoke_token(refresh_payload)
         except jwt.InvalidTokenError:
+            logger.warning(
+                "invalid refresh token ignored during logout",
+                extra={"user_id": g.current_user.id},
+            )
             pass # Ignore invalid token
         
     response = make_response(jsonify({"message": "Logged out successfully"}))
     response.set_cookie("refresh_token", "", expires=0, httponly=True, secure=True, samesite="None")
+    logger.info("user logged out", extra={"user_id": g.current_user.id})
     write_audit_log(
         "auth.logout",
         "success",
@@ -326,6 +443,14 @@ def logout():
     )
     
     return response, 200
+
+@auth_bp.route('/test', methods=['GET'])
+@jwt_required(token_type="access")
+def test():
+    return jsonify({
+        "message": "Test endpoint is working",
+        "user": g.current_user.to_dict()
+    }), 200
 
 @auth_bp.route('/audit-logs', methods=['GET'])
 @jwt_required(token_type="access")
@@ -341,12 +466,15 @@ def get_audit_logs():
         .all()
     )
 
+    logger.info("audit logs retrieved", extra={"limit": limit, "user_id": g.current_user.id})
+
     return jsonify({
         "message": "Audit logs retrieved successfully",
         "data": [log.to_dict() for log in logs]
     }), 200
 
 @auth_bp.route('/circuit-breaker/token-revocation', methods=['GET'])
+@limiter.exempt
 def get_token_revocation_circuit_breaker():
     return jsonify({
         "message": "Token revocation circuit breaker status",
@@ -354,6 +482,7 @@ def get_token_revocation_circuit_breaker():
     }), 200
 
 @auth_bp.route('/circuit-breaker/token-revocation/reset', methods=['POST'])
+@limiter.exempt
 def reset_token_revocation_circuit_breaker():
     token_revocation_breaker.close()
 
