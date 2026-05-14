@@ -1,7 +1,7 @@
 from flask import Blueprint, current_app, request, jsonify, g, make_response
 from functools import wraps
 import jwt
-from app.extensions import db, redis_client
+from app.extensions import db, redis_client, limiter
 from app.models import User, UserRole
 from app.utils.auth_utils import create_access_token, create_refresh_token, decode_token, revoke_token
 
@@ -80,6 +80,7 @@ def role_required(required_role):
 auth_bp = Blueprint('api/v1/auth', __name__)
 
 @auth_bp.route('/login', methods=['POST'])
+@limiter.limit("5 per minute") 
 def login():
     data = request.get_json() or {}
     
@@ -116,6 +117,7 @@ def login():
     return response, 200
 
 @auth_bp.route('/register', methods=['POST'])
+@limiter.limit("100 per hour")
 def register():
     data = request.get_json() or {}
     
