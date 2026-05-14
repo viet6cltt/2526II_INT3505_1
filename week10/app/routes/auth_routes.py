@@ -5,6 +5,7 @@ import pybreaker
 from app.extensions import db, limiter
 from app.models import AuditLog, User, UserRole
 from app.utils.auth_utils import create_access_token, create_refresh_token, decode_token, revoke_token
+from app.utils.notification_client import send_welcome_notification
 from app.utils.token_revocation import (
     is_token_revoked,
     token_revocation_breaker,
@@ -207,6 +208,21 @@ def register():
         user_id=user.id,
         details={"username": user.username, "email": user.email, "role": user.role.value}
     )
+    try:
+        send_welcome_notification(user)
+        write_audit_log(
+            "notification.welcome",
+            "success",
+            user_id=user.id,
+            details={"username": user.username, "email": user.email}
+        )
+    except Exception as exc:
+        write_audit_log(
+            "notification.welcome",
+            "failure",
+            user_id=user.id,
+            details={"error": str(exc)}
+        )
     
     return jsonify({
         "message": "User registered successfully",
