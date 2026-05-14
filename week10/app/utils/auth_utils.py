@@ -2,8 +2,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 import jwt
 from flask import current_app
-from app.extensions import db, redis_client
-from app.models import User
+from app.utils.token_revocation import revoke_token_jti
 
 def utc_now():
     return datetime.now(timezone.utc)
@@ -67,6 +66,6 @@ def revoke_token(payload):
     exp = int(payload['exp'])
     
     # Lưu vào redis với thời gian tồn tại = thời gian còn lại của token
-    redis_client.setex(f"revoked_token:{jti}", exp - int(utc_now().timestamp()), "true")
+    revoke_token_jti(jti, exp - int(utc_now().timestamp()))
 
     

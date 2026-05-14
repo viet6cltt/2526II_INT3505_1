@@ -1,9 +1,15 @@
 from flask import Blueprint, current_app, request, jsonify, g, make_response
 from functools import wraps
 import jwt
-from app.extensions import db, redis_client, limiter
+import pybreaker
+from app.extensions import db, limiter
 from app.models import AuditLog, User, UserRole
 from app.utils.auth_utils import create_access_token, create_refresh_token, decode_token, revoke_token
+from app.utils.token_revocation import (
+    is_token_revoked,
+    token_revocation_breaker,
+    token_revocation_breaker_status,
+)
 
 def write_audit_log(action, status, user_id=None, details=None):
     audit_log = AuditLog(
@@ -65,7 +71,20 @@ def jwt_required(token_type="access"):
                 return jsonify({"error": "User not found"}), 404
             
             # handle token revocation
-            if redis_client.get(f"revoked_token:{payload['jti']}"):
+            try:
+                revoked_token = is_token_revoked(payload['jti'])
+            except pybreaker.CircuitBreakerError:
+                return jsonify({
+                    "error": "Token revocation service is temporarily unavailable",
+                    "circuit_breaker": token_revocation_breaker_status(),
+                }), 503
+            except Exception:
+                return jsonify({
+                    "error": "Token revocation service failed",
+                    "circuit_breaker": token_revocation_breaker_status(),
+                }), 503
+
+            if revoked_token:
                 return jsonify({"error": "Token has been revoked"}), 401
             
             g.current_user = user
@@ -309,6 +328,22 @@ def get_audit_logs():
     return jsonify({
         "message": "Audit logs retrieved successfully",
         "data": [log.to_dict() for log in logs]
+    }), 200
+
+@auth_bp.route('/circuit-breaker/token-revocation', methods=['GET'])
+def get_token_revocation_circuit_breaker():
+    return jsonify({
+        "message": "Token revocation circuit breaker status",
+        "data": token_revocation_breaker_status()
+    }), 200
+
+@auth_bp.route('/circuit-breaker/token-revocation/reset', methods=['POST'])
+def reset_token_revocation_circuit_breaker():
+    token_revocation_breaker.close()
+
+    return jsonify({
+        "message": "Token revocation circuit breaker reset",
+        "data": token_revocation_breaker_status()
     }), 200
     
     
