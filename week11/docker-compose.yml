@@ -1,0 +1,30 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  app:
+    image: python:3.14-slim
+    working_dir: /app
+    command: sh -c "pip install -r requirements.txt && python app.py"
+    volumes:
+      - ./:/app
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+    ports:
+      - "5004:5002"
+    depends_on:
+      - rabbitmq
+
+  consumer:
+    image: python:3.14-slim
+    working_dir: /app
+    command: sh -c "pip install -r requirements.txt && python consumer.py"
+    volumes:
+      - ./:/app
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - rabbitmq

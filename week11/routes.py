@@ -1,4 +1,8 @@
-from flask import Blueprint, jsonify, request
+import json
+import os
+from datetime import datetime, UTC
+
+from flask import Blueprint, jsonify, request, url_for
 
 
 notifications_bp = Blueprint("notifications", __name__)
@@ -6,6 +10,9 @@ notifications_bp = Blueprint("notifications", __name__)
 # Data is reset whenever the Flask app restarts.
 notifications = {}
 next_id = 1
+EVENT_LOG_FILE = os.path.join(os.path.dirname(__file__), "event_logs.jsonl")
+RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
+RABBITMQ_QUEUE = os.getenv("RABBITMQ_QUEUE", "notification_events")
 
 
 def error_response(message, status_code):
@@ -32,6 +39,91 @@ def parse_positive_int(value, field_name):
         return None, error_response(f"Query param '{field_name}' must be greater than 0", 400)
 
     return parsed_value, None
+
+
+def append_event_log(event_name, payload, source, publish_status):
+    log_entry = {
+        "event_name": event_name,
+        "payload": payload,
+        "source": source,
+        "publish_status": publish_status,
+        "created_at": datetime.now(UTC).isoformat(),
+    }
+    with open(EVENT_LOG_FILE, "a", encoding="utf-8") as log_file:
+        log_file.write(json.dumps(log_entry) + "\n")
+    return log_entry
+
+
+def read_event_logs():
+    if not os.path.exists(EVENT_LOG_FILE):
+        return []
+
+    logs = []
+    with open(EVENT_LOG_FILE, "r", encoding="utf-8") as log_file:
+        for line in log_file:
+            line = line.strip()
+            if line:
+                logs.append(json.loads(line))
+    return logs
+
+
+def publish_event(event_name, payload):
+    print(
+        f"[publisher] publishing {event_name} to {RABBITMQ_HOST}/{RABBITMQ_QUEUE}: {payload}",
+        flush=True,
+    )
+    try:
+        import pika
+    except ImportError:
+        append_event_log(event_name, payload, "publisher", "pika_not_installed")
+        print("[publisher] publish skipped: pika is not installed", flush=True)
+        return False
+
+    connection = None
+    try:
+        connection = pika.BlockingConnection(
+            pika.ConnectionParameters(host=RABBITMQ_HOST)
+        )
+        channel = connection.channel()
+        channel.queue_declare(queue=RABBITMQ_QUEUE, durable=False)
+        channel.basic_publish(
+            exchange="",
+            routing_key=RABBITMQ_QUEUE,
+            body=json.dumps({
+                "event_name": event_name,
+                "payload": payload,
+            }),
+        )
+        append_event_log(event_name, payload, "publisher", "published")
+        print(f"[publisher] published {event_name}", flush=True)
+        return True
+    except Exception as exc:
+        append_event_log(event_name, payload, "publisher", "publish_failed")
+        print(f"[publisher] publish failed: {exc}", flush=True)
+        return False
+    finally:
+        if connection is not None and connection.is_open:
+            connection.close()
+
+
+def notification_response_data(notification):
+    return {
+        **notification,
+        "_links": {
+            "self": {
+                "href": url_for("notifications.get_notification_detail", notification_id=notification["id"])
+            },
+            "update": {
+                "href": url_for("notifications.update_notification", notification_id=notification["id"])
+            },
+            "delete": {
+                "href": url_for("notifications.delete_notification", notification_id=notification["id"])
+            },
+            "mark_read": {
+                "href": url_for("notifications.mark_notification_as_read", notification_id=notification["id"])
+            },
+        },
+    }
 
 
 @notifications_bp.post("/notifications")
@@ -64,11 +156,12 @@ def create_notification():
     }
     notifications[next_id] = notification
     next_id += 1
+    publish_event("notification.created", notification)
 
     return jsonify({
         "success": True,
         "message": "Notification created",
-        "data": notification,
+        "data": notification_response_data(notification),
     }), 201
 
 
@@ -124,10 +217,19 @@ def list_notifications():
     return jsonify({
         "success": True,
         "message": "Notifications retrieved",
-        "data": paginated_notifications,
+        "data": [notification_response_data(notification) for notification in paginated_notifications],
         "page": page,
         "limit": limit,
         "total": total,
+    }), 200
+
+
+@notifications_bp.get("/events")
+def list_event_logs():
+    return jsonify({
+        "success": True,
+        "message": "Event logs retrieved",
+        "data": read_event_logs(),
     }), 200
 
 
@@ -140,7 +242,7 @@ def get_notification_detail(notification_id):
     return jsonify({
         "success": True,
         "message": "Notification retrieved",
-        "data": notification,
+        "data": notification_response_data(notification),
     }), 200
 
 
@@ -166,7 +268,22 @@ def update_notification(notification_id):
     return jsonify({
         "success": True,
         "message": "Notification updated",
-        "data": notification,
+        "data": notification_response_data(notification),
+    }), 200
+
+
+@notifications_bp.patch("/notifications/<int:notification_id>/read")
+def mark_notification_as_read(notification_id):
+    notification, error = get_notification(notification_id)
+    if error:
+        return error
+
+    notification["status"] = "read"
+
+    return jsonify({
+        "success": True,
+        "message": "Notification marked as read",
+        "data": notification_response_data(notification),
     }), 200
 
 
@@ -180,5 +297,5 @@ def delete_notification(notification_id):
     return jsonify({
         "success": True,
         "message": "Notification deleted",
-        "data": notification,
+        "data": notification_response_data(notification),
     }), 200
