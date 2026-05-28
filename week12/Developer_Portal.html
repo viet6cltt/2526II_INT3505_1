@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VolunteerHub Developer Portal</title>
+  <style>
+    :root {
+      --pale-canvas: #fff8f6;
+      --deep-forest: #00522d;
+      --foudre-pink: #db3c8a;
+      --ash-whisper: #fce5df;
+      --bubblegum-blush: #f29ebd;
+      --slate-tint: #d1cfe4;
+      --white: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(242, 158, 189, 0.28), transparent 35%),
+        radial-gradient(circle at bottom right, rgba(219, 60, 138, 0.18), transparent 30%),
+        var(--pale-canvas);
+      color: var(--deep-forest);
+      line-height: 1.6;
+    }
+
+    .container {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .hero {
+      padding: 48px 0 32px;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: var(--white);
+      border: 1px solid rgba(0, 82, 45, 0.12);
+      color: var(--foudre-pink);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    h1, h2, h3 {
+      margin: 0;
+    }
+
+    h1 {
+      margin-top: 18px;
+      font-size: clamp(42px, 7vw, 88px);
+      line-height: 0.9;
+      text-transform: uppercase;
+      color: var(--foudre-pink);
+    }
+
+    h2 {
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 1;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    p.lead {
+      max-width: 860px;
+      font-size: 18px;
+      margin: 20px 0 0;
+    }
+
+    .hero-grid,
+    .grid-2,
+    .grid-4 {
+      display: grid;
+      gap: 20px;
+    }
+
+    .hero-grid {
+      grid-template-columns: 1.2fr 0.8fr;
+      align-items: end;
+      margin-top: 28px;
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid-4 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(0, 82, 45, 0.1);
+      border-radius: 24px;
+      padding: 24px;
+    }
+
+    .dark-card {
+      background: var(--deep-forest);
+      color: var(--white);
+      border-radius: 28px;
+      padding: 24px;
+    }
+
+    .pink-card {
+      background: var(--foudre-pink);
+      color: var(--white);
+      border-radius: 28px;
+      padding: 24px;
+    }
+
+    .soft-card {
+      background: var(--ash-whisper);
+      border-radius: 28px;
+      padding: 24px;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 14px;
+    }
+
+    .pill.green {
+      background: var(--deep-forest);
+      color: var(--white);
+    }
+
+    .pill.pink {
+      background: var(--foudre-pink);
+      color: var(--white);
+    }
+
+    .pill.soft {
+      background: var(--ash-whisper);
+      color: var(--deep-forest);
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .stack div,
+    .endpoint,
+    .flow-step {
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 16px;
+      padding: 12px 14px;
+      border: 1px solid rgba(0, 82, 45, 0.08);
+    }
+
+    .dark-card .stack div {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .section {
+      padding: 26px 0 10px;
+    }
+
+    .section-header {
+      margin-bottom: 18px;
+    }
+
+    ul {
+      padding-left: 18px;
+      margin: 14px 0 0;
+    }
+
+    li + li {
+      margin-top: 8px;
+    }
+
+    pre {
+      margin: 18px 0 0;
+      overflow-x: auto;
+      border-radius: 20px;
+      background: var(--deep-forest);
+      color: var(--white);
+      padding: 18px;
+      font-size: 14px;
+    }
+
+    .endpoint-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .endpoint {
+      font-family: "Courier New", monospace;
+      font-size: 14px;
+    }
+
+    .footer {
+      padding: 28px 0 42px;
+      color: rgba(0, 82, 45, 0.78);
+      font-size: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .hero-grid,
+      .grid-2,
+      .grid-4 {
+        grid-template-columns: 1fr;
+      }
+
+      p.lead {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="container">
+      <span class="eyebrow">VolunteerHub Developer Portal</span>
+      <h1>APIs for volunteer operations</h1>
+      <p class="lead">
+        Đây là trang developer portal đơn giản cho hệ backend VolunteerHub. Hệ thống được thiết kế theo mô hình microservices để quản lý sự kiện tình nguyện, đăng ký tham gia, tương tác cộng đồng, chat thời gian thực, thông báo và phân tích dữ liệu.
+      </p>
+
+      <div class="hero-grid">
+        <section class="card">
+          <div class="pill pink">Use cases</div>
+          <h3>Tích hợp nhanh cho frontend hoặc mobile</h3>
+          <ul>
+            <li>Khám phá sự kiện và tìm kiếm theo bộ lọc.</li>
+            <li>Đăng ký tham gia, duyệt participant và theo dõi trạng thái.</li>
+            <li>Check-in và xác nhận hoàn thành bằng QR.</li>
+            <li>Tạo bài viết cộng đồng, chat và nhận notification.</li>
+          </ul>
+        </section>
+
+        <aside class="dark-card">
+          <div class="pill soft">Tech stack</div>
+          <div class="stack">
+            <div>Spring Boot microservices</div>
+            <div>PostgreSQL, Redis, RabbitMQ</div>
+            <div>OAuth2 / JWT / Role-based access</div>
+            <div>Firebase Storage và Web Push</div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="section">
+      <div class="section-header">
+        <h2>Core services</h2>
+      </div>
+      <div class="grid-2">
+        <article class="card">
+          <div class="pill green">Authorization + User</div>
+          <p>
+            Xử lý đăng nhập, cấp token, đồng bộ hồ sơ người dùng, role và quản lý tài khoản cho volunteer, manager, admin.
+          </p>
+        </article>
+        <article class="card">
+          <div class="pill pink">Event + Registration</div>
+          <p>
+            Quản lý vòng đời sự kiện, đăng ký tham gia, duyệt participant, thống kê đăng ký và xác thực tham gia bằng QR.
+          </p>
+        </article>
+        <article class="card">
+          <div class="pill soft">Community + Chat</div>
+          <p>
+            Cung cấp bài viết theo sự kiện, bình luận, reaction và hội thoại theo event để tăng gắn kết cộng đồng.
+          </p>
+        </article>
+        <article class="card">
+          <div class="pill green">Notification + Analytics</div>
+          <p>
+            Gửi web push notification, tổng hợp dashboard, export dữ liệu và hỗ trợ quản trị vận hành nền tảng.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>Quick start</h2>
+      </div>
+      <div class="grid-2">
+        <div class="soft-card">
+          <div class="pill pink">Authentication</div>
+          <p>Hầu hết endpoint yêu cầu Bearer token sau khi người dùng đăng nhập thành công.</p>
+          <pre>Authorization: Bearer &lt;access_token&gt;
+Content-Type: application/json
+
+GET /api/v1/aggregated/events?pageNum=0&amp;pageSize=10</pre>
+        </div>
+        <div class="card">
+          <div class="pill green">Suggested flow</div>
+          <ul>
+            <li>Đăng nhập và lấy access token.</li>
+            <li>Đọc danh sách sự kiện từ Aggregation hoặc Event service.</li>
+            <li>Gọi Registration service để đăng ký hoặc duyệt participant.</li>
+            <li>Dùng Notification và Chat cho luồng tương tác thời gian thực.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>Main endpoints</h2>
+      </div>
+      <div class="grid-4">
+        <div class="card">
+          <div class="pill pink">Authentication</div>
+          <div class="endpoint-list">
+            <div class="endpoint">POST /api/v1/users/register</div>
+            <div class="endpoint">POST /api/v1/users/login</div>
+            <div class="endpoint">GET /login/oauth2/code/google</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="pill green">Events</div>
+          <div class="endpoint-list">
+            <div class="endpoint">GET /api/v1/events</div>
+            <div class="endpoint">POST /api/v1/events</div>
+            <div class="endpoint">PUT /api/v1/events/{eventId}/approve</div>
+            <div class="endpoint">GET /api/v1/events/search</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="pill pink">Registrations</div>
+          <div class="endpoint-list">
+            <div class="endpoint">GET /api/v1/registrations</div>
+            <div class="endpoint">POST /api/v1/registrations/events/{eventId}</div>
+            <div class="endpoint">PUT /api/v1/registrations/events/{eventId}/participants/{participantId}</div>
+            <div class="endpoint">POST /api/v1/registrations/qr/join</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="pill green">Community + Chat</div>
+          <div class="endpoint-list">
+            <div class="endpoint">GET /api/v1/events/{eventId}/posts</div>
+            <div class="endpoint">POST /api/v1/events/{eventId}/posts</div>
+            <div class="endpoint">GET /api/v1/chats/conversations</div>
+            <div class="endpoint">POST /api/v1/chats/conversations/{conversationId}/messages</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>Architecture flow</h2>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="pill soft">Flow overview</div>
+          <div class="stack">
+            <div class="flow-step">Client → API Gateway → Domain services</div>
+            <div class="flow-step">Authorization Server cấp token cho protected APIs</div>
+            <div class="flow-step">Aggregation Service tổng hợp dữ liệu từ Event, User, Registration, Community</div>
+            <div class="flow-step">RabbitMQ và Redis hỗ trợ async workflow, cache và coordination</div>
+          </div>
+        </div>
+        <div class="pink-card">
+          <div class="pill soft">Developer notes</div>
+          <ul>
+            <li>Nên ưu tiên `aggregated/events` cho màn hình danh sách sự kiện có dữ liệu ghép sẵn.</li>
+            <li>Dùng `registrations` cho toàn bộ participant lifecycle.</li>
+            <li>Dùng `analytics` và export API cho dashboard manager/admin.</li>
+            <li>Community và Chat nên đi kèm context xác thực và role của người dùng.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      VolunteerHub Developer Portal - static page for week12 report/demo.
+    </div>
+  </footer>
+</body>
+</html>
